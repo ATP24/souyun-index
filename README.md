@@ -39,19 +39,15 @@
 *   ⛔ **彻底退出机制**：由于采用了最轻量、最稳定的系统架构，程序不包含脆弱的自动销毁机制。关闭网页即可结束使用。如需释放后台进程，只需在任务管理器中结束 `souyun-index-windows.exe` 即可。
 
 ---
+ 图 1：检索首屏界面
+  🖼 Image: 检索首屏界面 → https://github.com/user-attachments/assets/f2d4acee-c837-446e-
+  98f9-abd01cc9e9d9
 
-  ## 📸 界面预览 (Screenshots)
-
-    *图 1：检索首屏界面*
-    <img width="771" alt="检索首屏界面" src="https://github.com/user-
-  attachments/assets/f2d4acee-c837-446e-98f9-abd01cc9e9d9" />
-
-    *图 2：出处溯源、引文生成与书影对照界面*
-    <img width="536" alt="出处溯源界面" src="https://github.com/user-
-  attachments/assets/a820b9bf-cbd9-4353-851b-69628b9b464a" />
-    <img width="280" alt="书影对照" src="https://github.com/user-
-  attachments/assets/cf8df122-cf8a-4ae8-8e6e-0703ce8d0fbc" />
-
+  图 2：出处溯源、引文生成与书影对照界面
+  🖼 Image: 出处溯源界面 → https://github.com/user-attachments/assets/a820b9bf-cbd9-4353-
+  851b-69628b9b464a
+  🖼 Image: 书影对照 → https://github.com/user-attachments/assets/cf8df122-cf8a-4ae8-8e6e-
+  0703ce8d0fbc
 ---
 
 ## 🚀 快速上手 (Quick Start)
