@@ -1,0 +1,48 @@
+ name: Build and Release
+
+    on:
+      release:
+        types: [created, edited]
+
+    jobs:
+      build-windows:
+        runs-on: windows-latest
+        steps:
+        - uses: actions/checkout@v3
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.10'
+        - name: Install dependencies
+          run: pip install pyinstaller
+        - name: Build with PyInstaller
+          working-directory: ./src
+          run: pyinstaller --noconfirm --onefile --windowed --add-data "index.html;." --
+  name "souyun-index-windows" server.py
+        - name: Upload Release Asset
+          uses: softprops/action-gh-release@v1
+          with:
+            files: src/dist/souyun-index-windows.exe
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      build-macos:
+        runs-on: macos-latest
+        steps:
+        - uses: actions/checkout@v3
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.10'
+        - name: Install dependencies
+          run: pip install pyinstaller
+        - name: Build with PyInstaller
+          working-directory: ./src
+          run: pyinstaller --noconfirm --onefile --windowed --add-data "index.html:." --
+  name "souyun-index-mac" server.py
+        - name: Upload Release Asset
+          uses: softprops/action-gh-release@v1
+          with:
+            files: src/dist/souyun-index-mac
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
