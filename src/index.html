@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜韵网收录诗文出处循证系统</title>
+    <style>
+        :root {
+            /* 古典配色系统 */
+            --bg-color: #f9f7f1; /* 宣纸白 */
+            --card-bg: #ffffff;
+            --text-main: #2b2b2b; /* 徽墨黑 */
+            --text-light: #5c5c5c;
+            --border-color: #d1c7b7; /* 苍黄 */
+            --primary: #8c4356; /* 胭脂 */
+            --primary-hover: #723444;
+            --badge-green: #486a51; /* 竹青 */
+            --badge-blue: #4b667e; /* 靛蓝 */
+            --badge-purple: #6a4c6a; /* 紫檀 */
+            --badge-gray: #7a7a7a;
+            
+            /* 古典字体系列 */
+            --font-classical: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+        }
+
+        body {
+            font-family: var(--font-classical);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.8;
+            margin: 0;
+            padding: 20px;
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.05"/></svg>');
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        /* ---------------------------------------------
+           大中至正排版 (Hero Section) 
+           --------------------------------------------- */
+        .hero-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 70vh; /* 默认居中霸气留白 */
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+        }
+
+        /* 搜索后状态 (退避至顶部) */
+        .hero-wrapper.compact {
+            min-height: 0;
+            padding-top: 2vh;
+            margin-bottom: 25px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        
+        .header h1 { 
+            margin: 0 0 10px 0; 
+            font-size: 42px; 
+            font-weight: normal;
+            letter-spacing: 4px;
+            color: var(--primary);
+            transition: font-size 0.5s ease;
+        }
+        
+        .hero-wrapper.compact .header h1 {
+            font-size: 28px; /* 搜索后缩小 */
+        }
+        
+        .subtitle { 
+            margin: 0; 
+            font-size: 16px; 
+            color: var(--text-light);
+            letter-spacing: 3px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 650px;
+            position: relative;
+            z-index: 100;
+        }
+
+        /* 如果需要紧凑模式下吸顶，可以开启，但居中布局下不吸顶更优雅，让出舞台给引文 */
+        .hero-wrapper.compact .search-box {
+            position: sticky;
+            top: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-family: var(--font-classical);
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            transition: all 0.2s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        button.main-btn {
+            padding: 16px 35px;
+            background-color: var(--primary);
+            color: #f9f7f1;
+            border: none;
+            font-family: var(--font-classical);
+            font-size: 18px;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            box-shadow: 0 4px 6px rgba(140, 67, 86, 0.2);
+            flex-shrink: 0;
+        }
+
+        button.main-btn:hover { background-color: var(--primary-hover); }
+        button.main-btn:disabled { background-color: #a89f91; cursor: not-allowed; box-shadow: none; }
+
+        /* ---------------------------------------------
+           全局格式切换器
+           --------------------------------------------- */
+        .global-format-selector {
+            background: transparent;
+            padding: 10px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px dashed var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+        }
+
+        .radio-group { display: flex; gap: 20px; }
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .status-bar {
+            padding: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+            display: none;
+            border: 1px solid transparent;
+        }
+        .status-loading { color: var(--badge-blue); border-color: #d1d9e0; background: #eef2f5; }
+        .status-error { color: var(--primary); border-color: #e2c8ce; background: #f7ebee; }
+        .status-success { color: var(--badge-green); border-color: #c9d8ce; background: #eaf1ec; }
+
+        /* ---------------------------------------------
+           古典风格卡片
+           --------------------------------------------- */
+        .poem-card {
+            background: var(--card-bg);
+            padding: 35px 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        /* 四角装饰线 */
+        .poem-card::before, .poem-card::after {
+            content: '';
+            position: absolute;
+            left: 5px; right: 5px;
+            height: 1px;
+            background: var(--border-color);
+        }
+        .poem-card::before { top: 5px; }
+        .poem-card::after { bottom: 5px; }
+
+        .poem-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .poem-title { 
+            font-size: 24px; 
+            font-weight: normal; 
+            color: var(--text-main); 
+            margin: 0 0 10px 0; 
+            letter-spacing: 2px;
+        }
+        .poem-meta { 
+            color: var(--text-light); 
+            font-size: 14px; 
+            display: flex; 
+            justify-content: center;
+            gap: 15px; 
+        }
+
+        /* ---------------------------------------------
+           智能折叠诗文区 (修复了遮挡 BUG)
+           --------------------------------------------- */
+        .poem-content-wrapper {
+            margin: 25px 0;
+            font-size: 17px;
+            line-height: 2.2;
+            text-align: center;
+            padding: 0 40px;
+        }
+        
+        .poem-content {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+        
+        .poem-content.expanded {
+            -webkit-line-clamp: unset;
+        }
+        
+        .poem-gradient {
+            /* 关键修改：取消绝对定位，使用相对定位让它自然跟随文字 */
+            position: relative;
+            margin-top: -35px; /* 利用负边距将遮罩拉上来盖住文字底部 */
+            height: 50px;
+            background: linear-gradient(transparent, var(--card-bg) 80%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 2px;
+        }
+        
+        /* 关键修改：当上方文字展开时，相邻的渐变层褪去遮罩，并取消负边距 */
+        .poem-content.expanded + .poem-gradient {
+            background: transparent;
+            margin-top: 10px; /* 退下成为正常的下方按钮 */
+        }
+
+        .expand-btn {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-family: var(--font-classical);
+            padding: 2px 15px;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .expand-btn:hover { background: #e8e2d2; color: var(--text-main); }
+
+        /* ---------------------------------------------
+           古典分割线
+           --------------------------------------------- */
+        .classical-divider {
+            text-align: center;
+            margin: 30px 0 20px;
+            color: var(--border-color);
+            font-size: 12px;
+            letter-spacing: 4px;
+        }
+        .classical-divider::before, .classical-divider::after {
+            content: '──────';
+            margin: 0 10px;
+            opacity: 0.5;
+        }
+
+        /* ---------------------------------------------
+           来源条目设计
+           --------------------------------------------- */
+        .source-container {
+            margin-bottom: 15px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 15px;
+        }
+        .source-container:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .source-header {
+            font-size: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .badge {
+            flex-shrink: 0;
+            padding: 2px 6px;
+            font-size: 12px;
+            color: var(--bg-color);
+            border: 1px solid currentColor;
+        }
+        .badge.type-BookLinks { color: var(--badge-green); } 
+        .badge.type-Froms { color: var(--badge-blue); }     
+        .badge.type-Comments { color: var(--badge-purple); }  
+        .badge.type-Fallback { color: var(--badge-gray); }  
+
+        .source-meta-title {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+        
+        .source-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-link {
+            font-size: 13px;
+            color: var(--primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border: 1px solid var(--primary);
+            transition: all 0.2s;
+            cursor: pointer;
+            background: transparent;
+            font-family: var(--font-classical);
+        }
+        .action-link:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .citation-box {
+            padding: 15px 20px;
+            background: #faf8f5;
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--text-main);
+            border-left: 2px solid var(--border-color);
+        }
+        
+        /* ---------------------------------------------
+           折叠面板
+           --------------------------------------------- */
+        details.more-sources {
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            background: #faf8f5;
+        }
+        details.more-sources summary {
+            padding: 12px 15px;
+            font-size: 14px;
+            color: var(--text-light);
+            cursor: pointer;
+            list-style: none;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        details.more-sources summary::-webkit-details-marker { display: none; }
+        details.more-sources summary:hover { color: var(--text-main); }
+        .details-content { padding: 20px; border-top: 1px solid var(--border-color); background: var(--card-bg); }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Hero Section Wrapper -->
+        <div class="hero-wrapper" id="heroWrapper">
+            <div class="header">
+                <h1>搜韵网收录诗文出处循证系统</h1>
+                <p class="subtitle">寻根溯源 · 明辨底本</p>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入诗词名或诗句，如：登鹳雀楼" onkeypress="handleKeyPress(event)">
+                <button class="main-btn" id="searchBtn" onclick="performSearch()">探 索</button>
+            </div>
+        </div>
+
+        <!-- 全局格式联动控制器 -->
+        <div class="global-format-selector" id="formatSelector" style="display: none;">
+            <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="g_format" value="basic" checked onchange="updateAllFormats()"> 自设基础格式</label>
+                <label class="radio-label"><input type="radio" name="g_format" value="gbt7714" onchange="updateAllFormats()"> 国标 (GB/T 7714)</label>
+                <label class="radio-label"><input type="radio" name="g_format" value="mla" onchange="updateAllFormats()"> MLA 规范</label>
+            </div>
+        </div>
+
+        <div id="statusBar" class="status-bar"></div>
+        <div id="resultsArea"></div>
+    </div>
+
+    <script>
+
+
+        window.poemDataMap = {};
+        window.currentSearchId = 0;
+        
+        function showStatus(message, type) {
+            const bar = document.getElementById('statusBar');
+            bar.className = 'status-bar status-' + type;
+            bar.textContent = message;
+            bar.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('statusBar').style.display = 'none';
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                const btn = document.getElementById('searchBtn');
+                if (!btn.disabled) performSearch();
+            }
+        }
+
+        async function copyToClipboard(btn, text) {
+            const successUI = () => {
+                btn.innerHTML = '已复制';
+                btn.style.background = 'var(--primary)';
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.innerHTML = '📋 复制';
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--primary)';
+                }, 2000);
+            };
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    successUI();
+                } else {
+                    // Fallback for older browsers or HTTP
+                    let textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    textArea.style.top = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                    successUI();
+                }
+            } catch (err) {
+                alert('复制失败，请手动复制');
+            }
+        }
+        
+        function togglePoemText(btn) {
+            // content 是 btn 的父级(poem-gradient)的再上一个兄弟(poem-content)
+            const content = btn.parentElement.previousElementSibling;
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                btn.textContent = '展开全文';
+            } else {
+                content.classList.add('expanded');
+                btn.textContent = '收起';
+            }
+        }
+
+        function getCurrentFormatKey() {
+            return document.querySelector('input[name="g_format"]:checked').value;
+        }
+
+        function updateAllFormats() {
+            const formatKey = getCurrentFormatKey();
+            document.querySelectorAll('.citation-text-node').forEach(node => {
+                const wid = node.getAttribute('data-wid');
+                const idx = node.getAttribute('data-idx');
+                const citData = window.poemDataMap[wid][idx];
+                
+                let text = '';
+                if(formatKey === 'basic') text = citData.basic;
+                else if(formatKey === 'gbt7714') text = citData.gbt7714;
+                else if(formatKey === 'mla') text = citData.mla;
+                
+                node.textContent = text;
+            });
+        }
+
+        function renderSingleCitationCard(cit, wid, idx) {
+            let badgeClass = 'type-Fallback';
+            let badgeText = cit.source_type;
+            
+            if(cit.source_type === '古籍实体影印本') { badgeClass = 'type-BookLinks'; badgeText = '实体影印'; }
+            else if(cit.source_type === '文本底层录入来源') { badgeClass = 'type-Froms'; badgeText = '文本录入'; }
+            else if(cit.source_type === '批注与收录记录') { badgeClass = 'type-Comments'; badgeText = '批注记录'; }
+            else { badgeText = '无来源'; }
+            
+            let headerTitle = `《${cit.book}》`;
+            if (cit.volume && cit.volume !== '无') headerTitle += ` ${cit.volume}`;
+            if (cit.edition && cit.edition !== '无') headerTitle += ` | ${cit.edition}`;
+            if (cit.book === '未知' || !cit.book) headerTitle = "搜韵网未注版本";
+            
+            const formatKey = getCurrentFormatKey();
+            let initialText = cit.basic;
+            if(formatKey === 'gbt7714') initialText = cit.gbt7714;
+            if(formatKey === 'mla') initialText = cit.mla;
+
+            let imageBtnHtml = '';
+            if (cit.has_images && cit.first_image_url) {
+                imageBtnHtml = `<a href="${cit.first_image_url}" target="_blank" class="action-link" title="阅览高清扫描原图">🖼️ 原书图像</a>`;
+            }
+
+            return `
+                <div class="source-container">
+                    <div class="source-header">
+                        <span class="badge ${badgeClass}">${badgeText}</span>
+                        <span class="source-meta-title">${headerTitle}</span>
+                        
+                        <div class="source-actions">
+                            ${imageBtnHtml}
+                            <button class="action-link" onclick="copyToClipboard(this, this.closest('.source-container').querySelector('.citation-text-node').textContent)">📋 复制</button>
+                        </div>
+                    </div>
+                    
+                    <div class="citation-box">
+                        <span class="citation-text-node" data-wid="${wid}" data-idx="${idx}">${initialText}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function fetchSources(wid, raw_w, containerId, searchId) {
+            const container = document.getElementById(containerId);
+            if (!container) return; // 拦截异步渲染时的空指针异常
+            if (searchId !== window.currentSearchId) return; // 拦截旧请求串台
+            container.innerHTML = '<div class="classical-divider">正在发掘底层书证</div>';
+            
+            try {
+                const response = await fetch('/api/booklinks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: wid, raw_w: raw_w })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                if (!data.citations || data.citations.length === 0) {
+                    container.innerHTML = '<div class="classical-divider">未找到任何来源</div>';
+                    return;
+                }
+
+                window.poemDataMap[wid] = data.citations;
+
+                let html = '<div class="classical-divider">文本出处</div>';
+                
+                html += renderSingleCitationCard(data.citations[0], wid, 0);
+                
+                if (data.citations.length > 1) {
+                    const remainingCount = data.citations.length - 1;
+                    html += `<details class="more-sources">
+                                <summary>展开其余 ${remainingCount} 个底层备用来源</summary>
+                                <div class="details-content">`;
+                    
+                    for (let i = 1; i < data.citations.length; i++) {
+                        html += renderSingleCitationCard(data.citations[i], wid, i);
+                    }
+                    
+                    html += `</div></details>`;
+                }
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                container.innerHTML = `<div class="classical-divider" style="color:var(--primary)">提取失败: ${error.message}</div>`;
+            }
+        }
+
+        async function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const query = searchInput.value.trim();
+            if (!query) return;
+            
+            searchInput.blur(); // 收起键盘
+
+            const searchId = ++window.currentSearchId;
+            const btn = document.getElementById('searchBtn');
+            const resultsArea = document.getElementById('resultsArea');
+            const formatSelector = document.getElementById('formatSelector');
+            const heroWrapper = document.getElementById('heroWrapper');
+            
+            // 触发居中向上的转场动画
+            heroWrapper.classList.add('compact');
+
+            btn.disabled = true;
+            btn.textContent = '探索中...';
+            resultsArea.innerHTML = '';
+            window.poemDataMap = {}; 
+            formatSelector.style.display = 'none';
+            
+            showStatus(`正在搜韵网古籍库检索 "${query}"...`, 'loading');
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                if (!data.results || data.results.length === 0) {
+                    showStatus('未找到相关诗词，请尝试更换关键词。', 'warning');
+                    btn.disabled = false;
+                    btn.textContent = '探 索';
+                    return;
+                }
+
+                showStatus(`成功锁定 ${data.results.length} 首目标，正在并发透视底层来源...`, 'success');
+                formatSelector.style.display = 'flex'; 
+
+                for (let p of data.results) {
+                    const card = document.createElement('div');
+                    card.className = 'poem-card';
+                    const containerId = `sources_${p.id}`;
+                    
+                    const fullText = p.clauses.join('');
+                    
+                    card.innerHTML = `
+                        <div class="poem-header">
+                            <h3 class="poem-title">${p.title}</h3>
+                            <div class="poem-meta">
+                                <span>〔${p.dynasty}〕${p.author}</span>
+                                <span>${p.type}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="poem-content-wrapper">
+                            <div class="poem-content">${fullText}</div>
+                            <div class="poem-gradient">
+                                <button class="expand-btn" onclick="togglePoemText(this)">展开全文</button>
+                            </div>
+                        </div>
+                        
+                        <div id="${containerId}"></div>
+                    `;
+                    resultsArea.appendChild(card);
+                    
+                    // 动态检测是否需要截断遮罩
+                    setTimeout(() => {
+                        const contentDiv = card.querySelector('.poem-content');
+                        if (contentDiv.scrollHeight <= contentDiv.clientHeight) {
+                            card.querySelector('.poem-gradient').style.display = 'none';
+                        }
+                    }, 50);
+                    
+                    if (searchId === window.currentSearchId) {
+                        await fetchSources(p.id, p.raw_w, containerId, searchId);
+                    }
+                    await new Promise(r => setTimeout(r, 600)); 
+                }
+                
+                if (searchId === window.currentSearchId) {
+                    showStatus(`所有目标的底层来源已全部透视完毕。`, 'success');
+                    setTimeout(hideStatus, 4000);
+                }
+
+            } catch (error) {
+                if (searchId === window.currentSearchId) {
+                    showStatus(`检索出错: ${error.message}`, 'error');
+                }
+            } finally {
+                if (searchId === window.currentSearchId) {
+                    btn.disabled = false;
+                    btn.textContent = '探 索';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
