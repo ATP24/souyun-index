@@ -1,6 +1,6 @@
 <div align="center">
   <h1>📜 souyun-index</h1>
-  <p><strong>古典文学底层书证与图谱映射聚合系统</strong></p>
+  <p><strong>搜韵诗文出处循证与书影映射聚合系统</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Python-3.x+-blue.svg" alt="Python 3.x+">
@@ -47,7 +47,6 @@
 
 *图 2：出处溯源、引文生成与书影对照界面*
 <img width="536" alt="出处溯源界面" src="https://github.com/user-attachments/assets/a820b9bf-cbd9-4353-851b-69628b9b464a" />
-<img width="280" alt="书影对照" src="https://github.com/user-attachments/assets/cf8df122-cf8a-4ae8-8e6e-0703ce8d0fbc" />
 
 ---
 
