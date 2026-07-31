@@ -40,16 +40,17 @@
 
 ---
 
-## 📸 界面预览 (Screenshots)
+  ## 📸 界面预览 (Screenshots)
 
-> **注**：请在此处插入系统运行截图
-> 
-> *图 1：检索首屏界面*
-> `<img width="771" height="436" alt="PixPin_2026-07-31_20-33-12" src="https://github.com/user-attachments/assets/f2d4acee-c837-446e-98f9-abd01cc9e9d9" />`
->
-> *图 2：出处溯源、引文生成与书影对照界面*
-> `<img width="536" height="424" alt="PixPin_2026-07-31_20-34-16" src="https://github.com/user-attachments/assets/a820b9bf-cbd9-4353-851b-69628b9b464a" />
-<img width="280" height="392" alt="PixPin_2026-07-31_20-34-37" src="https://github.com/user-attachments/assets/cf8df122-cf8a-4ae8-8e6e-0703ce8d0fbc" />`
+    *图 1：检索首屏界面*
+    <img width="771" alt="检索首屏界面" src="https://github.com/user-
+  attachments/assets/f2d4acee-c837-446e-98f9-abd01cc9e9d9" />
+
+    *图 2：出处溯源、引文生成与书影对照界面*
+    <img width="536" alt="出处溯源界面" src="https://github.com/user-
+  attachments/assets/a820b9bf-cbd9-4353-851b-69628b9b464a" />
+    <img width="280" alt="书影对照" src="https://github.com/user-
+  attachments/assets/cf8df122-cf8a-4ae8-8e6e-0703ce8d0fbc" />
 
 ---
 
