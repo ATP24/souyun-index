@@ -1,4 +1,4 @@
-# Python artifacts
+﻿# Python artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -12,12 +12,14 @@ src/build/
 src/dist/
 *.spec
 src/*.spec
+souyun-index-windows/
 
-# Binary releases & zips (Distributed via GitHub Releases)
-releases/**/*.exe
-releases/**/*.zip
+# Local Release archives & scripts
+releases/
 *.exe
 *.zip
+push_to_github.bat
+build.bat
 
 # Logs & temporary files
 *.log
