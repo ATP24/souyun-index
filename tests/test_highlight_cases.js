@@ -1,6 +1,7 @@
 // 测试关键词朱砂高亮各种边界情况
-const fs = require('fs');
-const html = fs.readFileSync('D:/AI/agy/搜韵网收录诗文出处循证系统/src/index.html', 'utf8');
+const path = require('path');
+const htmlPath = path.resolve(__dirname, '../src/index.html');
+const html = fs.readFileSync(htmlPath, 'utf8');
 
 const scriptMatch = html.match(/function escapeHtml[\s\S]*?function highlightKeywords[\s\S]*?return safeText\.replace\(regex, '<span class="keyword-highlight">\$1<\/span>'\);\s*\}/);
 if (!scriptMatch) {

@@ -27,8 +27,10 @@ def search(port):
     res = urllib.request.urlopen(req)
     return res.getcode(), json.loads(res.read().decode('utf-8'))
 
+import os
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 print("=== 正在启动测试 ===")
-proc = subprocess.Popen([sys.executable, "server.py"], cwd=r"D:\AI\agy\搜韵网收录诗文出处循证系统\src")
+proc = subprocess.Popen([sys.executable, "server.py"], cwd=src_dir)
 time.sleep(2)
 
 port = get_free_port()
@@ -73,7 +75,7 @@ else:
 
 print("\n--- 测试 3：老电脑开机启动超时 ---")
 print("重新启动服务器...")
-proc2 = subprocess.Popen([sys.executable, "server.py"], cwd=r"D:\AI\agy\搜韵网收录诗文出处循证系统\src")
+proc2 = subprocess.Popen([sys.executable, "server.py"], cwd=src_dir)
 print("服务器已启动，但不发送任何心跳，等待 62 秒...")
 time.sleep(63)
 if proc2.poll() is not None:

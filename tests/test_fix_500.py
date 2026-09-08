@@ -8,8 +8,7 @@ import urllib.request
 import urllib.error
 
 def run_test():
-    print("=== 启动测试服务器验证 HTTP 500 彻底解决 ===")
-    src_dir = r"D:\AI\agy\搜韵网收录诗文出处循证系统\src"
+    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
     
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
