@@ -189,7 +189,7 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     poem_dynasty = strip_punctuation(poem_data.get('Dynasty', '未知'))
     
     b_title, b_dyn, b_comp, edition_name, vol, page_str = "", "", "", "", "", ""
-    imgs = []
+    page_images = []
     first_image_url = ""
     book_raw = ""
     has_images = False
@@ -198,10 +198,11 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     if link:
         book_raw = link.get('Book', '')
         b_title, b_dyn, b_comp = parse_book_metadata(book_raw)
-        imgs = link.get('PageImages') or []
-        if imgs: 
+        raw_imgs = link.get('PageImages') or []
+        page_images = [str(x) for x in raw_imgs if x]
+        if page_images: 
             has_images = True
-            first_image_url = imgs[0] # 底层提取高清原图 CDN 链接
+            first_image_url = page_images[0] # 底层提取首页高清原图 CDN 链接
         
         vol_id = str(link.get('VolumeId') or '')
         prev_text = str(link.get('PreviousText') or '').strip()
@@ -210,8 +211,8 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
         
         if 'SBCK' in prev_text or 'SBCK' in vol_id:
             edition_name = "商务印书馆《四部丛刊》影印本"
-        elif any('WYG' in str(img) for img in imgs):
-            m = re.search(r'WYG(\d+)', "".join(str(x) for x in imgs))
+        elif any('WYG' in str(img) for img in page_images):
+            m = re.search(r'WYG(\d+)', "".join(str(x) for x in page_images))
             wy_num = f"第 {m.group(1)} 册" if m else ""
             edition_name = f"清文渊阁四库全书影印本 {wy_num}".strip()
 
@@ -364,6 +365,8 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
         "level_badge": level_badge,
         "has_images": has_images,
         "first_image_url": first_image_url,
+        "images": page_images,
+        "image_count": len(page_images),
         "basic": fmt_basic, "gbt7714": fmt_gbt, "academic": fmt_academic, "mla": fmt_mla, "bibtex": fmt_bibtex,
         "book": b_title, "volume": vol or "无", "edition": edition_name or "无", "page": page_str,
         "raw_book": book_raw, "hash": unique_hash,
