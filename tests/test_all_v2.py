@@ -69,7 +69,7 @@ def run_test():
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(breq, timeout=15) as bresp:
+        with urllib.request.urlopen(breq, timeout=30) as bresp:
             bdata = json.loads(bresp.read().decode('utf-8'))
             cits = bdata.get("citations", [])
             assert len(cits) > 0, "未能获取到出处列表"

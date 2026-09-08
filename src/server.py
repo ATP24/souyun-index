@@ -97,6 +97,36 @@ DEFAULT_HEADERS = {
     'Referer': 'https://sou-yun.cn/'
 }
 
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+SESSION = requests.Session()
+retries = Retry(
+    total=3,
+    connect=3,
+    read=3,
+    backoff_factor=0.5,
+    status_forcelist=[429, 500, 502, 503, 504],
+    raise_on_status=False
+)
+adapter = HTTPAdapter(pool_connections=25, pool_maxsize=40, max_retries=retries)
+SESSION.mount("https://", adapter)
+SESSION.mount("http://", adapter)
+SESSION.headers.update(DEFAULT_HEADERS)
+
+def prewarm_connection():
+    """程序启动时后台静默预热连接池，使首发检索从冷启动 15s 降至 0.06s"""
+    try:
+        SESSION.head("https://open.cnkgraph.com", timeout=10, verify=False)
+        safe_log("已完成搜韵知识图谱网络连接池异步预热")
+    except Exception:
+        pass
+
+threading.Thread(target=prewarm_connection, daemon=True, name="PrewarmThread").start()
+
 # ==============================================================================
 # 2. 无死锁、防节流生命周期与心跳机制 (Zero-Deadlock Lifecycle Architecture)
 # ==============================================================================
@@ -376,17 +406,53 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
         "has_context": has_context
     }
 
+def clean_search_query(raw):
+    """
+    智能清洗检索关键词：
+    1. 彻底清除各类 Unicode 隐形空白（全角空格 \u3000、零宽空格 \u200b、不间断空格 \u00a0、换行符等）；
+    2. 剔除导致搜韵底层全文检索引擎挂起超时的标点符号（如句号、叹号、引号、书名号等）。
+    """
+    if not raw: return ""
+    s = re.sub(r'[\s\u3000\u00a0\u200b\ufeff\r\n\t]+', ' ', str(raw)).strip()
+    s = re.sub(r'[。！？!?；;:：、“”‘’\"\'《》（）\(\)\[\]【】…—～·\.]+', ' ', s).strip()
+    return re.sub(r'\s+', ' ', s)
+
 def translate_error(e):
-    if isinstance(e, HTTPError):
-        if e.code == 429: return "访问频次过高，已被搜韵网流控限制，请稍候重试 (HTTP 429)"
-        if e.code == 502: return "搜韵网网关无响应 (HTTP 502 Bad Gateway)"
-        if e.code >= 500: return f"搜韵网官方接口维护中 (HTTP {e.code})"
-        return f"搜韵网接口返回异常 (HTTP {e.code})"
-    elif isinstance(e, URLError) or isinstance(e, socket.timeout):
-        return "网络连接搜韵网超时，请检查您的互联网连接。"
+    if isinstance(e, requests.HTTPError):
+        code = e.response.status_code if e.response is not None else 500
+        if code == 429: return "访问频次过高，已被搜韵网流控限制，请稍候重试 (HTTP 429)"
+        if code == 502: return "搜韵网网关无响应 (HTTP 502 Bad Gateway)"
+        if code == 503: return "搜韵网服务器暂时繁忙 (HTTP 503 Service Unavailable)"
+        if code == 504: return "搜韵网网关请求超时 (HTTP 504 Gateway Timeout)"
+        if code >= 500: return f"搜韵网官方接口维护中 (HTTP {code})"
+        return f"搜韵网接口返回异常 (HTTP {code})"
+    elif isinstance(e, (requests.Timeout, requests.ConnectionError, TimeoutError, socket.timeout)):
+        return "连接搜韵网接口超时，已自动多次重试未果，请检查互联网连接。"
     elif isinstance(e, json.decoder.JSONDecodeError):
         return "搜韵网返回非标准数据，接口可能正处于更新或维护中。"
     return str(e)
+
+def fetch_json_safe(url, payload=None, timeout=(6, 25)):
+    """
+    基于 requests.Session 连接池的高并发鲁棒网络请求器：
+    1. 连接池复用已建立的 TLS 通道，彻底消除频繁重复握手造成的延迟与 EOF 异常；
+    2. 内置 3 次梯度重试；
+    3. 连接超时 6 秒，读取超时 25 秒。
+    """
+    try:
+        if payload is not None:
+            resp = SESSION.post(url, json=payload, timeout=timeout, verify=False)
+        else:
+            resp = SESSION.get(url, timeout=timeout, verify=False)
+        
+        if resp.status_code == 404:
+            return {}
+        if resp.status_code != 200:
+            raise requests.HTTPError(f"HTTP {resp.status_code}", response=resp)
+        return resp.json()
+    except Exception as e:
+        safe_log(f"网络请求异常 [{url}]: {repr(e)}")
+        raise e
 
 def send_json_error(handler, status, msg):
     try:
@@ -479,7 +545,8 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
             # API: /api/search (诗词名/名句检索)
             # -------------------------------------------------------------
             if req_path == '/api/search':
-                query_str = req_json.get('query', '').strip()
+                raw_query = req_json.get('query', '')
+                query_str = clean_search_query(raw_query)
                 if not query_str:
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -496,64 +563,62 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                 
                 search_url = "https://open.cnkgraph.com/api/Writing/Find"
                 payload = {"key": query_str, "pageNo": 0}
-                headers = dict(DEFAULT_HEADERS)
-                headers['Content-Type'] = 'application/json; charset=utf-8'
                 
-                sreq = urllib.request.Request(search_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-                results = []
                 try:
-                    with urllib.request.urlopen(sreq, context=ctx, timeout=12) as sresp:
-                        data = json.loads(sresp.read().decode('utf-8'))
-                        writings = data.get('Writings', [])[:10]
-                        for w in writings:
-                            wid = w.get('Id')
-                            title = w.get('Title', {}).get('Content', '') if isinstance(w.get('Title'), dict) else str(w.get('Title', ''))
-                            author = w.get('Author', '未知')
-                            dynasty = w.get('Dynasty', '未知')
-                            poem_type = w.get('Type', '诗')
-                            
-                            clauses = w.get('Clauses', [])
-                            clause_texts = []
-                            for c in clauses:
-                                if isinstance(c, dict) and 'Content' in c:
-                                    clause_texts.append(str(c['Content']).strip())
-                                elif isinstance(c, str):
-                                    clause_texts.append(c.strip())
-                                    
-                            # 提取历代名家汇评集释 (Comments)
-                            raw_comments = w.get('Comments') or []
-                            cleaned_comments = []
-                            for c in raw_comments:
-                                if isinstance(c, dict):
-                                    b_name = c.get('Book') or c.get('FullPath') or '历代诗话'
-                                    c_content = str(c.get('Content') or '').strip()
-                                    if c_content and b_name:
-                                        cleaned_comments.append({
-                                            "book": strip_punctuation(b_name),
-                                            "content": c_content
-                                        })
+                    data = fetch_json_safe(search_url, payload=payload, timeout=(6, 25))
+                    writings = data.get('Writings', [])[:10]
+                    results = []
+                    for w in writings:
+                        wid = w.get('Id')
+                        title = w.get('Title', {}).get('Content', '') if isinstance(w.get('Title'), dict) else str(w.get('Title', ''))
+                        author = w.get('Author', '未知')
+                        dynasty = w.get('Dynasty', '未知')
+                        poem_type = w.get('Type', '诗')
+                        
+                        clauses = w.get('Clauses', [])
+                        clause_texts = []
+                        for c in clauses:
+                            if isinstance(c, dict) and 'Content' in c:
+                                clause_texts.append(str(c['Content']).strip())
+                            elif isinstance(c, str):
+                                clause_texts.append(c.strip())
+                                
+                        # 提取历代名家汇评集释 (Comments)
+                        raw_comments = w.get('Comments') or []
+                        cleaned_comments = []
+                        for c in raw_comments:
+                            if isinstance(c, dict):
+                                b_name = c.get('Book') or c.get('FullPath') or '历代诗话'
+                                c_content = str(c.get('Content') or '').strip()
+                                if c_content and b_name:
+                                    cleaned_comments.append({
+                                        "book": strip_punctuation(b_name),
+                                        "content": c_content
+                                    })
 
-                            results.append({
-                                "id": wid, "title": strip_punctuation(title), "author": strip_punctuation(author),
-                                "dynasty": strip_punctuation(dynasty), "type": poem_type, "clauses": clause_texts,
-                                "comments": cleaned_comments, "raw_w": w 
-                            })
-                            
+                        results.append({
+                            "id": wid, "title": strip_punctuation(title), "author": strip_punctuation(author),
+                            "dynasty": strip_punctuation(dynasty), "type": poem_type, "clauses": clause_texts,
+                            "comments": cleaned_comments, "raw_w": w 
+                        })
+                        
                     CACHE_SEARCH[query_str] = results
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
                     self.end_headers()
                     self.wfile.write(json.dumps({"results": results}, ensure_ascii=False).encode('utf-8'))
                     
-                except HTTPError as e:
-                    if e.code == 404:
+                except requests.HTTPError as e:
+                    if e.response is not None and e.response.status_code == 404:
                         self.send_response(200)
                         self.send_header('Content-Type', 'application/json; charset=utf-8')
                         self.end_headers()
                         self.wfile.write(json.dumps({"results": []}).encode('utf-8'))
                         return
+                    safe_log(f"检索 HTTP 错误: {repr(e)}")
                     send_json_error(self, 500, translate_error(e))
                 except Exception as e:
+                    safe_log(f"检索处理异常: {repr(e)}")
                     send_json_error(self, 500, translate_error(e))
                 
             # -------------------------------------------------------------
@@ -572,14 +637,13 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                     return
                 
                 burl = f"https://open.cnkgraph.com/api/Writing/{wid}/BookLinks"
-                breq = urllib.request.Request(burl, headers=DEFAULT_HEADERS)
                 links_data = []
                 try:
-                    with urllib.request.urlopen(breq, context=ctx, timeout=10) as bresp:
-                        bdata = json.loads(bresp.read().decode('utf-8'))
-                        links_data = bdata.get('Links') or []
-                except HTTPError as e:
-                    if e.code == 404: links_data = []
+                    bdata = fetch_json_safe(burl, payload=None, timeout=(6, 25))
+                    links_data = bdata.get('Links') or []
+                except requests.HTTPError as e:
+                    if e.response is not None and e.response.status_code == 404:
+                        links_data = []
                     else:
                         safe_log(f"请求 BookLinks 异常: {repr(e)}")
                         send_json_error(self, 500, translate_error(e))

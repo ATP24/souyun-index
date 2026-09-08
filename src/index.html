@@ -1282,7 +1282,14 @@
                     body: JSON.stringify({ id: wid, raw_w: raw_w })
                 });
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    let errMsg = `出处提取失败 (HTTP ${response.status})`;
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMsg = errJson.error;
+                    } catch(e) {}
+                    throw new Error(errMsg);
+                }
                 const data = await response.json();
                 
                 if (!data.citations || data.citations.length === 0) {
@@ -1461,8 +1468,11 @@
 
         async function performSearch() {
             const searchInput = document.getElementById('searchInput');
-            const query = searchInput.value.trim();
+            let query = searchInput.value;
+            // 清洗全角空格、零宽空格与多余空白
+            query = query.replace(/[\s\u3000\u00a0\u200b\ufeff\r\n\t]+/g, ' ').trim();
             if (!query) return;
+            searchInput.value = query;
             
             searchInput.blur();
 
@@ -1491,7 +1501,14 @@
                     body: JSON.stringify({ query: query })
                 });
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    let errMsg = `搜韵网接口响应异常 (HTTP ${response.status})`;
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMsg = errJson.error;
+                    } catch(e) {}
+                    throw new Error(errMsg);
+                }
                 const data = await response.json();
                 
                 if (!data.results || data.results.length === 0) {
