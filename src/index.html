@@ -6,20 +6,22 @@
     <title>搜韵网收录诗文出处循证系统</title>
     <style>
         :root {
-            /* 古典配色系统 */
-            --bg-color: #f9f7f1; /* 宣纸白 */
-            --card-bg: #ffffff;
-            --text-main: #2b2b2b; /* 徽墨黑 */
-            --text-light: #5c5c5c;
-            --border-color: #d1c7b7; /* 苍黄 */
-            --primary: #8c4356; /* 胭脂 */
-            --primary-hover: #723444;
-            --badge-green: #486a51; /* 竹青 */
-            --badge-blue: #4b667e; /* 靛蓝 */
-            --badge-purple: #6a4c6a; /* 紫檀 */
-            --badge-gray: #7a7a7a;
-            
-            /* 古典字体系列 */
+            /* 古典文人书斋配色 */
+            --bg-color: #f9f7f1;       /* 宣纸暖白 */
+            --card-bg: #ffffff;        /* 纯净衬纸 */
+            --card-sub: #fdfcf9;       /* 文卷微暖 */
+            --text-main: #2b2b2b;      /* 徽墨 */
+            --text-light: #5e5951;     /* 松烟淡墨 */
+            --border-color: #d8cebe;   /* 苍黄细线 */
+            --border-subtle: #eae2d3;  /* 卷折暗痕 */
+            --primary: #8c4356;        /* 胭脂 */
+            --primary-hover: #723444;  /* 熟胭脂 */
+            --badge-green: #3d664a;    /* 竹青 */
+            --badge-blue: #446581;     /* 靛蓝 */
+            --badge-purple: #6a4a6b;   /* 紫檀 */
+            --badge-gray: #78756e;     /* 苍石 */
+
+            /* 古籍典雅字体系列 */
             --font-classical: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
         }
 
@@ -46,27 +48,26 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 70vh; /* 默认居中霸气留白 */
-            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 65vh;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
         }
 
-        /* 搜索后状态 (退避至顶部) */
         .hero-wrapper.compact {
             min-height: 0;
-            padding-top: 2vh;
+            padding-top: 15px;
             margin-bottom: 25px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 35px;
             width: 100%;
         }
         
         .header h1 { 
             margin: 0 0 10px 0; 
-            font-size: 42px; 
+            font-size: 40px; 
             font-weight: normal;
             letter-spacing: 4px;
             color: var(--primary);
@@ -74,12 +75,12 @@
         }
         
         .hero-wrapper.compact .header h1 {
-            font-size: 28px; /* 搜索后缩小 */
+            font-size: 26px;
         }
         
         .subtitle { 
             margin: 0; 
-            font-size: 16px; 
+            font-size: 15px; 
             color: var(--text-light);
             letter-spacing: 3px;
         }
@@ -93,20 +94,14 @@
             z-index: 100;
         }
 
-        /* 如果需要紧凑模式下吸顶，可以开启，但居中布局下不吸顶更优雅，让出舞台给引文 */
-        .hero-wrapper.compact .search-box {
-            position: sticky;
-            top: 20px;
-        }
-
         input[type="text"] {
             flex: 1;
-            padding: 16px 20px;
-            font-size: 18px;
+            padding: 15px 20px;
+            font-size: 17px;
             font-family: var(--font-classical);
             border: 1px solid var(--border-color);
             background-color: var(--card-bg);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.03);
             transition: all 0.2s;
         }
         
@@ -117,12 +112,12 @@
         }
 
         button.main-btn {
-            padding: 16px 35px;
+            padding: 15px 34px;
             background-color: var(--primary);
             color: #f9f7f1;
             border: none;
             font-family: var(--font-classical);
-            font-size: 18px;
+            font-size: 17px;
             letter-spacing: 4px;
             cursor: pointer;
             transition: background-color 0.2s;
@@ -134,33 +129,70 @@
         button.main-btn:disabled { background-color: #a89f91; cursor: not-allowed; box-shadow: none; }
 
         /* ---------------------------------------------
-           全局格式切换器
+           全局格式切换与整页引文复制栏
            --------------------------------------------- */
         .global-format-selector {
             background: transparent;
-            padding: 10px 0;
-            margin-bottom: 30px;
+            padding: 12px 4px;
+            margin-bottom: 25px;
             border-bottom: 1px dashed var(--border-color);
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 25px;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
         }
 
-        .radio-group { display: flex; gap: 20px; }
+        .radio-group { 
+            display: flex; 
+            gap: 18px; 
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
         .radio-label {
             display: flex;
             align-items: center;
             gap: 6px;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14.5px;
+            color: var(--text-main);
+            user-select: none;
+        }
+
+        .format-actions {
+            margin-left: auto;
+        }
+
+        .action-btn {
+            font-size: 12.5px;
+            color: var(--primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border: 1px solid #d8bec4;
+            background: #ffffff;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-family: var(--font-classical);
+            border-radius: 2px;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+        }
+        .action-btn:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
         }
 
         .status-bar {
-            padding: 15px;
-            margin-bottom: 25px;
+            padding: 12px 18px;
+            margin-bottom: 22px;
             text-align: center;
             display: none;
+            font-size: 14.5px;
             border: 1px solid transparent;
         }
         .status-loading { color: var(--badge-blue); border-color: #d1d9e0; background: #eef2f5; }
@@ -168,37 +200,37 @@
         .status-success { color: var(--badge-green); border-color: #c9d8ce; background: #eaf1ec; }
 
         /* ---------------------------------------------
-           古典风格卡片
+           古典风格诗文卡片 (绝无奇怪勾选框与AI杂质)
            --------------------------------------------- */
         .poem-card {
             background: var(--card-bg);
-            padding: 35px 30px;
-            margin-bottom: 40px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+            padding: 35px 32px 30px;
+            margin-bottom: 35px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.025);
             border: 1px solid var(--border-color);
             position: relative;
         }
-        /* 四角装饰线 */
+
         .poem-card::before, .poem-card::after {
             content: '';
             position: absolute;
-            left: 5px; right: 5px;
+            left: 6px; right: 6px;
             height: 1px;
-            background: var(--border-color);
+            background: var(--border-subtle);
         }
-        .poem-card::before { top: 5px; }
-        .poem-card::after { bottom: 5px; }
+        .poem-card::before { top: 6px; }
+        .poem-card::after { bottom: 6px; }
 
         .poem-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .poem-title { 
             font-size: 24px; 
             font-weight: normal; 
             color: var(--text-main); 
-            margin: 0 0 10px 0; 
+            margin: 0 0 8px 0; 
             letter-spacing: 2px;
         }
         .poem-meta { 
@@ -209,15 +241,13 @@
             gap: 15px; 
         }
 
-        /* ---------------------------------------------
-           智能折叠诗文区 (修复了遮挡 BUG)
-           --------------------------------------------- */
+        /* 诗文展开与折叠 */
         .poem-content-wrapper {
-            margin: 25px 0;
+            margin: 22px 0;
             font-size: 17px;
-            line-height: 2.2;
+            line-height: 2.1;
             text-align: center;
-            padding: 0 40px;
+            padding: 0 35px;
         }
         
         .poem-content {
@@ -234,9 +264,8 @@
         }
         
         .poem-gradient {
-            /* 关键修改：取消绝对定位，使用相对定位让它自然跟随文字 */
             position: relative;
-            margin-top: -35px; /* 利用负边距将遮罩拉上来盖住文字底部 */
+            margin-top: -35px;
             height: 50px;
             background: linear-gradient(transparent, var(--card-bg) 80%);
             display: flex;
@@ -245,10 +274,9 @@
             padding-bottom: 2px;
         }
         
-        /* 关键修改：当上方文字展开时，相邻的渐变层褪去遮罩，并取消负边距 */
         .poem-content.expanded + .poem-gradient {
             background: transparent;
-            margin-top: 10px; /* 退下成为正常的下方按钮 */
+            margin-top: 10px;
         }
 
         .expand-btn {
@@ -256,266 +284,150 @@
             border: 1px solid var(--border-color);
             color: var(--text-light);
             font-family: var(--font-classical);
-            padding: 2px 15px;
-            font-size: 13px;
+            padding: 2px 14px;
+            font-size: 12.5px;
             cursor: pointer;
             z-index: 10;
         }
         .expand-btn:hover { background: #e8e2d2; color: var(--text-main); }
 
         /* ---------------------------------------------
-           古典分割线
+           古典风格分割线 (典雅中正)
            --------------------------------------------- */
         .classical-divider {
             text-align: center;
-            margin: 30px 0 20px;
-            color: var(--border-color);
-            font-size: 12px;
+            margin: 26px 0 16px;
+            color: #948b7d;
+            font-size: 13px;
             letter-spacing: 4px;
         }
         .classical-divider::before, .classical-divider::after {
-            content: '──────';
-            margin: 0 10px;
-            opacity: 0.5;
+            content: '——';
+            margin: 0 12px;
+            color: #d1c7b7;
+            font-weight: normal;
         }
 
         /* ---------------------------------------------
-           来源条目设计
+           出处卡片设计 (彻底去除AI感框与竖纹，回归典雅学人书叶风格)
            --------------------------------------------- */
         .source-container {
-            margin-bottom: 15px;
-            border-bottom: 1px dashed var(--border-color);
-            padding-bottom: 15px;
+            margin-bottom: 14px;
         }
         .source-container:last-child {
-            border-bottom: none;
             margin-bottom: 0;
-            padding-bottom: 0;
+        }
+
+        .source-card {
+            background: var(--card-sub);
+            border: 1px solid #eae2d3;
+            border-radius: 2px;
+            padding: 14px 18px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .source-card:hover {
+            border-color: #d6cab8;
+            box-shadow: 0 2px 8px rgba(140, 67, 86, 0.04);
         }
 
         .source-header {
-            font-size: 15px;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            margin-bottom: 10px;
+            padding-bottom: 9px;
+            margin-bottom: 9px;
+            border-bottom: 1px solid #f1ece1;
+        }
+        
+        .source-meta-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
         .badge {
             flex-shrink: 0;
-            padding: 2px 6px;
-            font-size: 12px;
-            color: var(--bg-color);
+            padding: 2px 7px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
             border: 1px solid currentColor;
+            border-radius: 2px;
         }
-        .badge.type-BookLinks { color: var(--badge-green); } 
-        .badge.type-Froms { color: var(--badge-blue); }     
-        .badge.type-Comments { color: var(--badge-purple); }  
-        .badge.type-Fallback { color: var(--badge-gray); }  
+        .badge.type-BookLinks { color: var(--badge-green); background: #f0f6f2; } 
+        .badge.type-Froms { color: var(--badge-blue); background: #f0f4f8; }     
+        .badge.type-Comments { color: var(--badge-purple); background: #f7f0f7; }  
+        .badge.type-Fallback { color: var(--badge-gray); background: #f5f5f5; }
 
         .source-meta-title {
+            font-size: 14.5px;
             font-weight: bold;
-            color: var(--text-main);
+            color: #2b2823;
+            letter-spacing: 0.5px;
         }
         
         .source-actions {
             margin-left: auto;
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
-        .action-link {
-            font-size: 13px;
-            color: var(--primary);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            border: 1px solid var(--primary);
-            transition: all 0.2s;
-            cursor: pointer;
-            background: transparent;
-            font-family: var(--font-classical);
-        }
-        .action-link:hover {
-            background: var(--primary);
-            color: #fff;
-        }
-
-        .citation-box {
-            padding: 15px 20px;
-            background: #faf8f5;
-            font-size: 15px;
-            line-height: 1.8;
+        .citation-content {
+            font-size: 14.5px;
+            line-height: 1.85;
             color: var(--text-main);
-            border-left: 2px solid var(--border-color);
+            word-break: break-word;
+            /* 标准学术文献格式：悬挂缩进 */
+            padding-left: 2.2em;
+            text-indent: -2.2em;
+            letter-spacing: 0.2px;
         }
         
+        .citation-content pre {
+            margin: 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            text-indent: 0;
+            padding: 10px 14px;
+            background: #f6f3ed;
+            border: 1px solid #e5dfd2;
+            color: #3b352b;
+            border-radius: 2px;
+        }
+
         /* ---------------------------------------------
-           折叠面板
+           其余备用出处折叠面板
            --------------------------------------------- */
         details.more-sources {
-            margin-top: 20px;
-            border: 1px solid var(--border-color);
-            background: #faf8f5;
+            margin-top: 16px;
+            border: 1px solid #eae2d3;
+            background: #fcfbf8;
+            border-radius: 2px;
         }
         details.more-sources summary {
-            padding: 12px 15px;
-            font-size: 14px;
+            padding: 10px 15px;
+            font-size: 13.5px;
             color: var(--text-light);
             cursor: pointer;
             list-style: none;
             text-align: center;
             letter-spacing: 1px;
+            transition: all 0.2s;
         }
         details.more-sources summary::-webkit-details-marker { display: none; }
-        details.more-sources summary:hover { color: var(--text-main); }
-        .details-content { padding: 20px; border-top: 1px solid var(--border-color); background: var(--card-bg); }
-
-        /* ---------------------------------------------
-           考信打分勋章
-           --------------------------------------------- */
-        .badge.score-badge {
-            font-weight: normal;
-            letter-spacing: 1px;
-            padding: 2px 8px;
-        }
-        .badge.score-high { color: var(--badge-green); border-color: var(--badge-green); background: #eef5f0; }
-        .badge.score-good { color: var(--badge-blue); border-color: var(--badge-blue); background: #eef3f7; }
-        .badge.score-mid  { color: var(--badge-purple); border-color: var(--badge-purple); background: #f7eef7; }
-        .badge.score-low  { color: #8a6442; border-color: #8a6442; background: #fdf6ee; }
-
-        /* ---------------------------------------------
-           批量学术导出工具栏
-           --------------------------------------------- */
-        .batch-export-toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #faf8f5;
-            border: 1px solid var(--border-color);
-            padding: 10px 18px;
-            margin-bottom: 25px;
-            font-size: 14px;
-        }
-        .select-all-label {
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-main);
-        }
-        .poem-select-item {
-            position: absolute;
-            top: 25px;
-            left: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--text-light);
-            cursor: pointer;
-            z-index: 10;
-        }
-
-        /* ---------------------------------------------
-           学术导出模态框 (Export Modal)
-           --------------------------------------------- */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .modal-card {
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            max-width: 800px;
-            width: 100%;
-            box-shadow: 0 16px 36px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-            max-height: 85vh;
-        }
-        .modal-header {
-            padding: 15px 22px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-        }
-        .modal-title {
-            margin: 0;
-            font-size: 18px;
+        details.more-sources summary:hover {
             color: var(--primary);
-            font-weight: normal;
-            letter-spacing: 2px;
+            background: #f7f4ed;
         }
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: var(--text-light);
+        .details-content {
+            padding: 14px;
+            border-top: 1px solid #eae2d3;
+            background: #ffffff;
         }
-        .modal-close:hover { color: var(--primary); }
-        .modal-tabs {
-            display: flex;
-            background: #ede8dc;
-            border-bottom: 1px solid var(--border-color);
-            padding: 0 10px;
-            gap: 4px;
-            overflow-x: auto;
-        }
-        .modal-tab {
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid transparent;
-            padding: 10px 14px;
-            font-family: var(--font-classical);
-            font-size: 14px;
-            cursor: pointer;
-            color: var(--text-light);
-        }
-        .modal-tab.active {
-            color: var(--primary);
-            font-weight: bold;
-            border-bottom-color: var(--primary);
-            background: var(--card-bg);
-        }
-        .modal-body {
-            padding: 18px 22px;
-            flex: 1;
-            overflow-y: auto;
-        }
-        .export-textarea {
-            width: 100%;
-            height: 250px;
-            box-sizing: border-box;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            background: #fff;
-            resize: vertical;
-        }
-        .modal-footer {
-            padding: 12px 22px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-        }
-        .export-hint { font-size: 13px; color: var(--text-light); }
 
         /* ---------------------------------------------
            原书影印 Lightbox 模态框
@@ -570,7 +482,7 @@
 <body>
     <div class="container">
         
-        <!-- Hero Section Wrapper -->
+        <!-- Hero Section -->
         <div class="hero-wrapper" id="heroWrapper">
             <div class="header">
                 <h1>搜韵网收录诗文出处循证系统</h1>
@@ -583,54 +495,22 @@
             </div>
         </div>
 
-        <!-- 全局格式联动控制器 -->
+        <!-- 全局格式联动控制器与整页出处引文一键复制 -->
         <div class="global-format-selector" id="formatSelector" style="display: none;">
             <div class="radio-group">
-                <label class="radio-label"><input type="radio" name="g_format" value="basic" checked onchange="updateAllFormats()"> 自设基础</label>
+                <label class="radio-label"><input type="radio" name="g_format" value="basic" checked onchange="updateAllFormats()"> 基础格式</label>
                 <label class="radio-label"><input type="radio" name="g_format" value="gbt7714" onchange="updateAllFormats()"> 国标 (GB/T 7714)</label>
                 <label class="radio-label"><input type="radio" name="g_format" value="academic" onchange="updateAllFormats()"> 古籍传统学术</label>
                 <label class="radio-label"><input type="radio" name="g_format" value="mla" onchange="updateAllFormats()"> MLA 9th</label>
                 <label class="radio-label"><input type="radio" name="g_format" value="bibtex" onchange="updateAllFormats()"> BibTeX (LaTeX)</label>
             </div>
-        </div>
-
-        <!-- 批量学术导出工具栏 -->
-        <div class="batch-export-toolbar" id="batchToolbar" style="display: none;">
-            <label class="select-all-label">
-                <input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAll(this)"> 全选当前检出诗作 (<span id="selectedCountNum">0</span> 首)
-            </label>
-            <button class="action-link export-btn" onclick="openExportModal()">📑 批量导出学术引文清单</button>
+            <div class="format-actions">
+                <button class="action-btn" id="copyAllBtn" onclick="copyAllDisplayedCitations(this)" title="一键复制当前检索到的全部诗文首选出处引文">📋 复制全部出处引文</button>
+            </div>
         </div>
 
         <div id="statusBar" class="status-bar"></div>
         <div id="resultsArea"></div>
-    </div>
-
-    <!-- 学术引文批量导出模态框 -->
-    <div id="exportModal" class="modal-overlay" style="display: none;" onclick="handleModalOverlayClick(event)">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 class="modal-title">📜 学术引文批量导出工作台</h3>
-                <button class="modal-close" onclick="closeExportModal()">✕</button>
-            </div>
-            <div class="modal-tabs">
-                <button class="modal-tab active" data-fmt="gbt7714" onclick="switchExportTab('gbt7714', this)">国标 GB/T 7714</button>
-                <button class="modal-tab" data-fmt="bibtex" onclick="switchExportTab('bibtex', this)">BibTeX (.bib)</button>
-                <button class="modal-tab" data-fmt="academic" onclick="switchExportTab('academic', this)">古籍传统学术</button>
-                <button class="modal-tab" data-fmt="mla" onclick="switchExportTab('mla', this)">MLA 9th 规范</button>
-                <button class="modal-tab" data-fmt="markdown" onclick="switchExportTab('markdown', this)">Markdown 考据表</button>
-            </div>
-            <div class="modal-body">
-                <textarea id="exportTextarea" class="export-textarea" readonly></textarea>
-            </div>
-            <div class="modal-footer">
-                <span class="export-hint" id="exportHintText">已整理 0 条已勾选诗文首选底本引文</span>
-                <div style="display:flex; gap:10px;">
-                    <button class="action-link" onclick="copyAllExports(this)">📋 复制全部内容</button>
-                    <button class="action-link" onclick="downloadExportFile()">💾 下载为文件</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- 原书影印 Lightbox 模态框 -->
@@ -639,7 +519,7 @@
             <div class="lightbox-header">
                 <span id="lightboxTitle" class="lightbox-title">古籍原典高清扫描件</span>
                 <div style="display:flex; gap:12px; align-items:center;">
-                    <a id="lightboxRawLink" href="#" target="_blank" class="action-link" style="color:#f1ebd8; border-color:#888;">新标签页看大图 ↗</a>
+                    <a id="lightboxRawLink" href="#" target="_blank" class="action-btn" style="color:#f1ebd8; border-color:#888; background:transparent;">新标签页看大图 ↗</a>
                     <button class="lightbox-close" onclick="closeLightboxDirect()">✕</button>
                 </div>
             </div>
@@ -651,34 +531,26 @@
 
     <script>
         // -------------------------------------------------------------
-        // 无死锁双模生命周期守护与防节流心跳 (Zero-Deadlock Lifecycle Client)
+        // 无死锁双模生命周期守护与防节流心跳
         // -------------------------------------------------------------
         let lastPingTime = 0;
         function sendHeartbeat() {
             const now = Date.now();
-            if (now - lastPingTime < 3000) return; // 节流保护：3秒内不重复触发
+            if (now - lastPingTime < 3000) return;
             lastPingTime = now;
-            fetch('/api/ping', { method: 'POST', cache: 'no-store' })
-                .catch(() => {});
+            fetch('/api/ping', { method: 'POST', cache: 'no-store' }).catch(() => {});
         }
 
-        // 1. 周期性心跳（每 10 秒）
         setInterval(sendHeartbeat, 10000);
-        sendHeartbeat(); // 初始立即发送一次
+        sendHeartbeat();
 
-        // 2. 浏览器切回前台立即补偿保活（解决 Chrome/Edge 后台标签页节流挂起问题）
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                sendHeartbeat();
-            }
+            if (document.visibilityState === 'visible') sendHeartbeat();
         });
-
-        // 3. 用户交互自动刷新活跃状态
         window.addEventListener('focus', sendHeartbeat);
         document.addEventListener('click', sendHeartbeat);
         document.addEventListener('keydown', sendHeartbeat);
 
-        // 4. 网页关闭时发送双保险安全自毁通知 (sendBeacon)
         window.addEventListener('beforeunload', () => {
             if (navigator.sendBeacon) {
                 navigator.sendBeacon('/api/exit', JSON.stringify({ action: 'unload' }));
@@ -688,6 +560,7 @@
         });
 
         window.poemDataMap = {};
+        window.allPoemResults = [];
         window.currentSearchId = 0;
         
         function showStatus(message, type) {
@@ -709,13 +582,14 @@
         }
 
         async function copyToClipboard(btn, text) {
+            const origHtml = btn.innerHTML;
             const successUI = () => {
                 btn.innerHTML = '已复制';
                 btn.style.background = 'var(--primary)';
                 btn.style.color = '#fff';
                 setTimeout(() => {
-                    btn.innerHTML = '📋 复制';
-                    btn.style.background = 'transparent';
+                    btn.innerHTML = origHtml;
+                    btn.style.background = '#fff';
                     btn.style.color = 'var(--primary)';
                 }, 2000);
             };
@@ -725,26 +599,102 @@
                     await navigator.clipboard.writeText(text);
                     successUI();
                 } else {
-                    // Fallback for older browsers or HTTP
-                    let textArea = document.createElement("textarea");
+                    let textArea = document.createElement('textarea');
                     textArea.value = text;
-                    textArea.style.position = "fixed";
-                    textArea.style.left = "-999999px";
-                    textArea.style.top = "-999999px";
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
                     document.body.appendChild(textArea);
-                    textArea.focus();
                     textArea.select();
                     document.execCommand('copy');
                     textArea.remove();
                     successUI();
                 }
             } catch (err) {
-                alert('复制失败，请手动复制');
+                alert('复制失败，请手动选取复制');
+            }
+        }
+
+        async function copyCitationCard(btn, wid, idx) {
+            const citData = window.poemDataMap[wid] ? window.poemDataMap[wid][idx] : null;
+            if (!citData) return;
+            const formatKey = getCurrentFormatKey();
+            let text = citData.basic;
+            if (formatKey === 'gbt7714') text = citData.gbt7714;
+            else if (formatKey === 'academic') text = citData.academic;
+            else if (formatKey === 'mla') text = citData.mla;
+            else if (formatKey === 'bibtex') text = citData.bibtex || citData.basic;
+            
+            await copyToClipboard(btn, text);
+        }
+
+        async function copyAllDisplayedCitations(btn) {
+            const formatKey = getCurrentFormatKey();
+            let lines = [];
+            let count = 0;
+            
+            for (let p of window.allPoemResults) {
+                const cits = window.poemDataMap[p.id];
+                if (!cits || cits.length === 0) continue;
+                const bestCit = cits[0];
+                count++;
+                
+                if (formatKey === 'gbt7714') {
+                    lines.push(`[${count}] ${bestCit.gbt7714}`);
+                } else if (formatKey === 'bibtex') {
+                    lines.push(bestCit.bibtex || bestCit.basic);
+                } else if (formatKey === 'academic') {
+                    lines.push(`${count}. ${bestCit.academic}`);
+                } else if (formatKey === 'mla') {
+                    lines.push(`${count}. ${bestCit.mla}`);
+                } else {
+                    lines.push(`${count}. ${bestCit.basic}`);
+                }
+            }
+            
+            if (lines.length === 0) {
+                alert('当前尚未加载出任何文献出处！');
+                return;
+            }
+            
+            const delimiter = (formatKey === 'bibtex') ? '
+
+' : '
+';
+            const allText = lines.join(delimiter);
+            
+            const origHtml = btn.innerHTML;
+            const successUI = () => {
+                btn.innerHTML = `✓ 已复制全部 (${count} 首)`;
+                btn.style.background = 'var(--primary)';
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.innerHTML = origHtml;
+                    btn.style.background = '#fff';
+                    btn.style.color = 'var(--primary)';
+                }, 2200);
+            };
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(allText);
+                    successUI();
+                } else {
+                    let textArea = document.createElement('textarea');
+                    textArea.value = allText;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                    successUI();
+                }
+            } catch (e) {
+                alert('复制失败，请手动选取');
             }
         }
         
         function togglePoemText(btn) {
-            // content 是 btn 的父级(poem-gradient)的再上一个兄弟(poem-content)
             const content = btn.parentElement.previousElementSibling;
             if (content.classList.contains('expanded')) {
                 content.classList.remove('expanded');
@@ -756,7 +706,8 @@
         }
 
         function getCurrentFormatKey() {
-            return document.querySelector('input[name="g_format"]:checked').value;
+            const checked = document.querySelector('input[name="g_format"]:checked');
+            return checked ? checked.value : 'basic';
         }
 
         function updateAllFormats() {
@@ -767,35 +718,32 @@
                 const citData = window.poemDataMap[wid] ? window.poemDataMap[wid][idx] : null;
                 if (!citData) return;
                 
-                let text = '';
-                if (formatKey === 'basic') text = citData.basic;
-                else if (formatKey === 'gbt7714') text = citData.gbt7714;
-                else if (formatKey === 'academic') text = citData.academic;
-                else if (formatKey === 'mla') text = citData.mla;
-                else if (formatKey === 'bibtex') {
-                    node.innerHTML = `<pre style="margin:0; font-family:'Consolas','Courier New',monospace; font-size:12px; white-space:pre-wrap;">${citData.bibtex || citData.basic}</pre>`;
-                    return;
+                if (formatKey === 'bibtex') {
+                    node.innerHTML = `<pre>${citData.bibtex || citData.basic}</pre>`;
+                } else {
+                    let text = citData.basic;
+                    if (formatKey === 'gbt7714') text = citData.gbt7714;
+                    else if (formatKey === 'academic') text = citData.academic;
+                    else if (formatKey === 'mla') text = citData.mla;
+                    node.textContent = text;
                 }
-                node.textContent = text;
             });
         }
 
         function renderSingleCitationCard(cit, wid, idx) {
             let badgeClass = 'type-Fallback';
-            let badgeText = cit.source_type;
+            let badgeText = '文献出处';
             
-            if(cit.source_type === '古籍实体影印本') { badgeClass = 'type-BookLinks'; badgeText = '实体影印'; }
-            else if(cit.source_type === '文本底层录入来源') { badgeClass = 'type-Froms'; badgeText = '文本录入'; }
-            else if(cit.source_type === '批注与收录记录') { badgeClass = 'type-Comments'; badgeText = '批注记录'; }
-            else { badgeText = '无来源'; }
-
-            // 考信打分等级勋章
-            let scoreClass = 'score-mid';
-            if (cit.score >= 95) scoreClass = 'score-high';
-            else if (cit.score >= 80) scoreClass = 'score-good';
-            else if (cit.score < 50) scoreClass = 'score-low';
-            
-            let credBadge = `<span class="badge score-badge ${scoreClass}" title="文献考信可靠度打分: ${cit.score}分">${cit.level_badge || badgeText} · ${cit.score}分</span>`;
+            if (cit.source_type === '古籍实体影印本') {
+                badgeClass = 'type-BookLinks';
+                badgeText = '实体影印';
+            } else if (cit.source_type === '文本底层录入来源') {
+                badgeClass = 'type-Froms';
+                badgeText = '底本录入';
+            } else if (cit.source_type === '批注与收录记录') {
+                badgeClass = 'type-Comments';
+                badgeText = '批注收录';
+            }
             
             let headerTitle = `《${cit.book}》`;
             if (cit.volume && cit.volume !== '无') headerTitle += ` ${cit.volume}`;
@@ -803,34 +751,39 @@
             if (cit.book === '未知' || !cit.book) headerTitle = "搜韵网未注版本";
             
             const formatKey = getCurrentFormatKey();
-            let initialContent = cit.basic;
-            if(formatKey === 'gbt7714') initialContent = cit.gbt7714;
-            else if(formatKey === 'academic') initialContent = cit.academic;
-            else if(formatKey === 'mla') initialContent = cit.mla;
-            else if(formatKey === 'bibtex') {
-                initialContent = `<pre style="margin:0; font-family:'Consolas','Courier New',monospace; font-size:12px; white-space:pre-wrap;">${cit.bibtex || cit.basic}</pre>`;
+            let initialContent = '';
+            if (formatKey === 'bibtex') {
+                initialContent = `<pre>${cit.bibtex || cit.basic}</pre>`;
+            } else {
+                let text = cit.basic;
+                if (formatKey === 'gbt7714') text = cit.gbt7714;
+                else if (formatKey === 'academic') text = cit.academic;
+                else if (formatKey === 'mla') text = cit.mla;
+                initialContent = text;
             }
 
             let imageBtnHtml = '';
             if (cit.has_images && cit.first_image_url) {
-                let safeTitle = (headerTitle + " 原书书影").replace(/'/g, "\\'");
-                imageBtnHtml = `<button class="action-link" onclick="openLightbox('${cit.first_image_url}', '${safeTitle}')" title="全屏阅览高清扫描原图">🖼️ 原书图像</button>`;
+                let safeTitle = (headerTitle + ' 原书书影').replace(/'/g, "\'");
+                imageBtnHtml = `<button class="action-btn" onclick="openLightbox('${cit.first_image_url}', '${safeTitle}')" title="全屏高清阅览原书扫描件">🖼️ 原书书影</button>`;
             }
 
             return `
                 <div class="source-container">
-                    <div class="source-header">
-                        ${credBadge}
-                        <span class="source-meta-title">${headerTitle}</span>
-                        
-                        <div class="source-actions">
-                            ${imageBtnHtml}
-                            <button class="action-link" onclick="copyToClipboard(this, this.closest('.source-container').querySelector('.citation-text-node').textContent)">📋 复制</button>
+                    <div class="source-card">
+                        <div class="source-header">
+                            <div class="source-meta-left">
+                                <span class="badge ${badgeClass}">${badgeText}</span>
+                                <span class="source-meta-title">${headerTitle}</span>
+                            </div>
+                            
+                            <div class="source-actions">
+                                ${imageBtnHtml}
+                                <button class="action-btn" onclick="copyCitationCard(this, '${wid}', ${idx})">📋 复制</button>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="citation-box">
-                        <span class="citation-text-node" data-wid="${wid}" data-idx="${idx}">${initialContent}</span>
+                        
+                        <div class="citation-content citation-text-node" data-wid="${wid}" data-idx="${idx}">${initialContent}</div>
                     </div>
                 </div>
             `;
@@ -838,8 +791,8 @@
 
         async function fetchSources(wid, raw_w, containerId, searchId) {
             const container = document.getElementById(containerId);
-            if (!container) return; // 拦截异步渲染时的空指针异常
-            if (searchId !== window.currentSearchId) return; // 拦截旧请求串台
+            if (!container) return;
+            if (searchId !== window.currentSearchId) return;
             container.innerHTML = '<div class="classical-divider">正在发掘底层书证</div>';
             
             try {
@@ -853,20 +806,19 @@
                 const data = await response.json();
                 
                 if (!data.citations || data.citations.length === 0) {
-                    container.innerHTML = '<div class="classical-divider">未找到任何来源</div>';
+                    container.innerHTML = '<div class="classical-divider">未找到任何出处</div>';
                     return;
                 }
 
                 window.poemDataMap[wid] = data.citations;
 
-                let html = '<div class="classical-divider">文本出处</div>';
-                
+                let html = '<div class="classical-divider">典籍出处</div>';
                 html += renderSingleCitationCard(data.citations[0], wid, 0);
                 
                 if (data.citations.length > 1) {
                     const remainingCount = data.citations.length - 1;
                     html += `<details class="more-sources">
-                                <summary>展开其余 ${remainingCount} 个底层备用来源</summary>
+                                <summary>展开其余 ${remainingCount} 个版本出处 ▾</summary>
                                 <div class="details-content">`;
                     
                     for (let i = 1; i < data.citations.length; i++) {
@@ -883,145 +835,11 @@
             }
         }
 
-        // -------------------------------------------------------------
-        // 学术批量导出与原书影印 Lightbox 交互系统
-        // -------------------------------------------------------------
-        window.allPoemResults = [];
-        window.selectedPoemIds = new Set();
-        window.currentExportFormat = 'gbt7714';
-
-        function updateSelectedCountDisplay() {
-            const countSpan = document.getElementById('selectedCountNum');
-            const total = window.allPoemResults.length;
-            const selected = window.selectedPoemIds.size;
-            if (countSpan) countSpan.textContent = selected;
-            
-            const masterCb = document.getElementById('selectAllCheckbox');
-            if (masterCb) {
-                masterCb.checked = (selected > 0 && selected === total);
-                masterCb.indeterminate = (selected > 0 && selected < total);
-            }
-        }
-
-        function toggleSelectAll(masterCb) {
-            const checked = masterCb.checked;
-            document.querySelectorAll('.poem-cb').forEach(cb => {
-                cb.checked = checked;
-                const wid = cb.getAttribute('data-wid');
-                if (checked) window.selectedPoemIds.add(wid);
-                else window.selectedPoemIds.delete(wid);
-            });
-            updateSelectedCountDisplay();
-        }
-
-        function handlePoemCheckboxChange(wid, cb) {
-            if (cb.checked) window.selectedPoemIds.add(wid);
-            else window.selectedPoemIds.delete(wid);
-            updateSelectedCountDisplay();
-        }
-
-        function openExportModal() {
-            if (window.selectedPoemIds.size === 0) {
-                alert('请至少勾选一首诗词！');
-                return;
-            }
-            const modal = document.getElementById('exportModal');
-            modal.style.display = 'flex';
-            renderExportContent();
-        }
-
-        function closeExportModal() {
-            document.getElementById('exportModal').style.display = 'none';
-        }
-
-        function handleModalOverlayClick(e) {
-            if (e.target.id === 'exportModal') closeExportModal();
-        }
-
-        function switchExportTab(fmt, btn) {
-            window.currentExportFormat = fmt;
-            document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-            btn.classList.add('active');
-            renderExportContent();
-        }
-
-        function renderExportContent() {
-            const fmt = window.currentExportFormat;
-            const textarea = document.getElementById('exportTextarea');
-            const hint = document.getElementById('exportHintText');
-            
-            let exportLines = [];
-            let processedCount = 0;
-
-            if (fmt === 'markdown') {
-                exportLines.push('| 序号 | 朝代 | 作者 | 诗文篇名 | 权威底本出处 | 著录卷册与页码 | 考信评级 |');
-                exportLines.push('| :---: | :---: | :---: | :---: | :---: | :---: | :---: |');
-            }
-
-            for (let p of window.allPoemResults) {
-                if (!window.selectedPoemIds.has(p.id)) continue;
-                
-                const cits = window.poemDataMap[p.id];
-                if (!cits || cits.length === 0) continue;
-                
-                // 默认选取第一顺位（考信打分最高）的底本书证
-                const bestCit = cits[0];
-                processedCount++;
-
-                if (fmt === 'gbt7714') {
-                    exportLines.push(`[${processedCount}] ${bestCit.gbt7714}`);
-                } else if (fmt === 'bibtex') {
-                    exportLines.push(bestCit.bibtex);
-                } else if (fmt === 'academic') {
-                    exportLines.push(`${processedCount}. ${bestCit.academic}`);
-                } else if (fmt === 'mla') {
-                    exportLines.push(`${processedCount}. ${bestCit.mla}`);
-                } else if (fmt === 'markdown') {
-                    const volInfo = (bestCit.volume && bestCit.volume !== '无') ? bestCit.volume : '-';
-                    const pageInfo = bestCit.page ? `${bestCit.page}页` : '-';
-                    exportLines.push(`| ${processedCount} | ${p.dynasty} | ${p.author} | 《${p.title}》 | 《${bestCit.book}》${bestCit.edition ? ' (' + bestCit.edition + ')' : ''} | ${volInfo} / ${pageInfo} | ${bestCit.level_badge || '综合'} (${bestCit.score}分) |`);
-                }
-            }
-
-            const delimiter = (fmt === 'bibtex') ? '\n\n' : '\n';
-            textarea.value = exportLines.join(delimiter);
-            hint.textContent = `已聚合 ${processedCount} 篇已选诗文的首选权威底本引文`;
-        }
-
-        async function copyAllExports(btn) {
-            const text = document.getElementById('exportTextarea').value;
-            if (!text) return;
-            await copyToClipboard(btn, text);
-        }
-
-        function downloadExportFile() {
-            const text = document.getElementById('exportTextarea').value;
-            if (!text) return;
-            const fmt = window.currentExportFormat;
-            let ext = 'txt';
-            let mime = 'text/plain';
-            if (fmt === 'bibtex') { ext = 'bib'; mime = 'application/x-bibtex'; }
-            else if (fmt === 'markdown') { ext = 'md'; mime = 'text/markdown'; }
-            
-            const filename = `古籍文献引文清单_${Date.now()}.${ext}`;
-            const blob = new Blob([text], { type: `${mime};charset=utf-8` });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        }
-
-        // -------------------------------------------------------------
-        // 原书影印 Lightbox 查看器
-        // -------------------------------------------------------------
+        // 原书影印 Lightbox
         function openLightbox(imgUrl, title) {
             const lightbox = document.getElementById('imageLightbox');
             document.getElementById('lightboxImg').src = imgUrl;
-            document.getElementById('lightboxTitle').textContent = title || '古籍原书影印扫描件';
+            document.getElementById('lightboxTitle').textContent = title || '古籍原典高清扫描件';
             document.getElementById('lightboxRawLink').href = imgUrl;
             lightbox.style.display = 'flex';
         }
@@ -1036,12 +854,8 @@
             document.getElementById('lightboxImg').src = '';
         }
 
-        // ESC 键通用关闭弹窗
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeExportModal();
-                closeLightboxDirect();
-            }
+            if (e.key === 'Escape') closeLightboxDirect();
         });
 
         async function performSearch() {
@@ -1055,7 +869,6 @@
             const btn = document.getElementById('searchBtn');
             const resultsArea = document.getElementById('resultsArea');
             const formatSelector = document.getElementById('formatSelector');
-            const batchToolbar = document.getElementById('batchToolbar');
             const heroWrapper = document.getElementById('heroWrapper');
             
             heroWrapper.classList.add('compact');
@@ -1065,9 +878,7 @@
             resultsArea.innerHTML = '';
             window.poemDataMap = {}; 
             window.allPoemResults = [];
-            window.selectedPoemIds.clear();
             formatSelector.style.display = 'none';
-            batchToolbar.style.display = 'none';
             
             showStatus(`正在搜韵网古籍库检索 "${query}"...`, 'loading');
 
@@ -1089,26 +900,17 @@
                 }
 
                 window.allPoemResults = data.results;
-                data.results.forEach(p => window.selectedPoemIds.add(p.id));
 
                 showStatus(`成功锁定 ${data.results.length} 首目标，正在并发透视底层来源...`, 'success');
                 formatSelector.style.display = 'flex'; 
-                batchToolbar.style.display = 'flex';
-                updateSelectedCountDisplay();
 
                 for (let p of data.results) {
                     const card = document.createElement('div');
                     card.className = 'poem-card';
                     const containerId = `sources_${p.id}`;
-                    
                     const fullText = p.clauses.join('');
                     
                     card.innerHTML = `
-                        <label class="poem-select-item" title="勾选以纳入学术引文批量导出清单">
-                            <input type="checkbox" class="poem-cb" data-wid="${p.id}" checked onchange="handlePoemCheckboxChange('${p.id}', this)">
-                            <span>纳入导出</span>
-                        </label>
-
                         <div class="poem-header">
                             <h3 class="poem-title">${p.title}</h3>
                             <div class="poem-meta">
@@ -1128,7 +930,6 @@
                     `;
                     resultsArea.appendChild(card);
                     
-                    // 动态检测是否需要截断遮罩
                     setTimeout(() => {
                         const contentDiv = card.querySelector('.poem-content');
                         if (contentDiv.scrollHeight <= contentDiv.clientHeight) {
@@ -1139,7 +940,7 @@
                     if (searchId === window.currentSearchId) {
                         await fetchSources(p.id, p.raw_w, containerId, searchId);
                     }
-                    await new Promise(r => setTimeout(r, 600)); 
+                    await new Promise(r => setTimeout(r, 500)); 
                 }
                 
                 if (searchId === window.currentSearchId) {
