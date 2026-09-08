@@ -262,6 +262,51 @@
         .poem-content.expanded {
             -webkit-line-clamp: unset;
         }
+
+        /* ---------------------------------------------
+           传统朱砂圈点/朱笔句读式关键词高亮 (典雅文人书斋风格)
+           --------------------------------------------- */
+        .keyword-highlight {
+            color: var(--primary);
+            background-color: rgba(140, 67, 86, 0.08);
+            border-bottom: 1.5px solid rgba(140, 67, 86, 0.45);
+            padding: 1px 3px 2px 3px;
+            border-radius: 2px;
+            font-weight: 500;
+            display: inline;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+            transition: all 0.2s ease;
+        }
+
+        .keyword-highlight:hover {
+            background-color: rgba(140, 67, 86, 0.16);
+            border-bottom-color: var(--primary);
+        }
+
+        /* 诗歌题目中的高亮：保持标题大字疏朗气象，去底色，以朱笔下划线微染标出 */
+        .poem-title .keyword-highlight {
+            background-color: transparent;
+            border-bottom: 2px solid var(--primary);
+            padding: 0 2px;
+            font-weight: normal;
+        }
+
+        /* 作者与朝代元数据中的高亮 */
+        .poem-meta .keyword-highlight {
+            background-color: transparent;
+            border-bottom: 1.5px solid var(--primary);
+            padding: 0 2px;
+            font-weight: normal;
+        }
+
+        /* 文献出处标题中的高亮 */
+        .source-meta-title .keyword-highlight {
+            background-color: transparent;
+            border-bottom: 1.5px solid var(--primary);
+            padding: 0 1px;
+            font-weight: normal;
+        }
         
         .poem-gradient {
             position: relative;
@@ -628,6 +673,47 @@
         window.poemDataMap = {};
         window.allPoemResults = [];
         window.currentSearchId = 0;
+        window.currentSearchQuery = '';
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function extractKeywords(query) {
+            if (!query) return [];
+            const rawTerms = query.split(/[，。！？；：“”‘’（）《》、\s,.!?;:()\[\]"'·\-—]+/);
+            const set = new Set();
+            const trimmed = query.trim();
+            if (trimmed) set.add(trimmed);
+            for (let term of rawTerms) {
+                term = term.trim();
+                if (term.length > 0) set.add(term);
+            }
+            return Array.from(set).sort((a, b) => b.length - a.length);
+        }
+
+        function highlightKeywords(text, query) {
+            if (!text) return '';
+            const safeText = escapeHtml(text);
+            const keywords = extractKeywords(query);
+            if (keywords.length === 0) return safeText;
+
+            const regexParts = [];
+            for (let kw of keywords) {
+                const escapedKw = escapeHtml(kw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                if (escapedKw) regexParts.push(escapedKw);
+            }
+            if (regexParts.length === 0) return safeText;
+
+            const regex = new RegExp('(' + regexParts.join('|') + ')', 'gi');
+            return safeText.replace(regex, '<span class="keyword-highlight">$1</span>');
+        }
         
         function showStatus(message, type) {
             const bar = document.getElementById('statusBar');
@@ -813,6 +899,8 @@
             if (cit.edition && cit.edition !== '无') headerTitle += ` | ${cit.edition}`;
             if (cit.book === '未知' || !cit.book) headerTitle = "搜韵网未注版本";
             
+            const highlightedHeaderTitle = window.currentSearchQuery ? highlightKeywords(headerTitle, window.currentSearchQuery) : escapeHtml(headerTitle);
+
             const formatKey = getCurrentFormatKey();
             let initialContent = '';
             if (formatKey === 'bibtex') {
@@ -837,7 +925,7 @@
                         <div class="source-header">
                             <div class="source-meta-left">
                                 <span class="badge ${badgeClass}">${badgeText}</span>
-                                <span class="source-meta-title">${headerTitle}</span>
+                                <span class="source-meta-title">${highlightedHeaderTitle}</span>
                             </div>
                             
                             <div class="source-actions">
@@ -961,6 +1049,7 @@
             searchInput.blur();
 
             const searchId = ++window.currentSearchId;
+            window.currentSearchQuery = query;
             const btn = document.getElementById('searchBtn');
             const resultsArea = document.getElementById('resultsArea');
             const formatSelector = document.getElementById('formatSelector');
@@ -1005,17 +1094,23 @@
                     const containerId = `sources_${p.id}`;
                     const fullText = p.clauses.join('');
                     
+                    const highlightedTitle = highlightKeywords(p.title, query);
+                    const highlightedAuthor = highlightKeywords(p.author, query);
+                    const highlightedDynasty = highlightKeywords(p.dynasty, query);
+                    const highlightedContent = highlightKeywords(fullText, query);
+                    const hasBodyMatch = highlightedContent.includes('class="keyword-highlight"');
+
                     card.innerHTML = `
                         <div class="poem-header">
-                            <h3 class="poem-title">${p.title}</h3>
+                            <h3 class="poem-title">${highlightedTitle}</h3>
                             <div class="poem-meta">
-                                <span>〔${p.dynasty}〕${p.author}</span>
+                                <span>〔${highlightedDynasty}〕${highlightedAuthor}</span>
                                 <span>${p.type}</span>
                             </div>
                         </div>
                         
                         <div class="poem-content-wrapper">
-                            <div class="poem-content">${fullText}</div>
+                            <div class="poem-content">${highlightedContent}</div>
                             <div class="poem-gradient">
                                 <button class="expand-btn" onclick="togglePoemText(this)">展开全文</button>
                             </div>
@@ -1027,8 +1122,14 @@
                     
                     setTimeout(() => {
                         const contentDiv = card.querySelector('.poem-content');
+                        const gradientDiv = card.querySelector('.poem-gradient');
+                        const expandBtn = card.querySelector('.expand-btn');
+
                         if (contentDiv.scrollHeight <= contentDiv.clientHeight) {
-                            card.querySelector('.poem-gradient').style.display = 'none';
+                            gradientDiv.style.display = 'none';
+                        } else if (hasBodyMatch) {
+                            contentDiv.classList.add('expanded');
+                            expandBtn.textContent = '收起';
                         }
                     }, 50);
                     
