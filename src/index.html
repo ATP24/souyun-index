@@ -656,10 +656,7 @@
                 return;
             }
             
-            const delimiter = (formatKey === 'bibtex') ? '
-
-' : '
-';
+            const delimiter = (formatKey === 'bibtex') ? "\n\n" : "\n";
             const allText = lines.join(delimiter);
             
             const origHtml = btn.innerHTML;
