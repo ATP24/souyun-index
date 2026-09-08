@@ -50,9 +50,41 @@ def safe_log(msg):
 ctx = ssl._create_unverified_context()
 socketserver.TCPServer.allow_reuse_address = True
 
-# 全局内存缓存
-CACHE_SEARCH = {}
-CACHE_BOOKLINKS = {}
+from collections import OrderedDict
+
+# 线程安全轻量 LRU 缓存，防止长周期运行内存泄露
+class SimpleLRUCache:
+    def __init__(self, capacity=250):
+        self.capacity = capacity
+        self.cache = OrderedDict()
+        self.lock = threading.Lock()
+
+    def __contains__(self, key):
+        with self.lock:
+            return key in self.cache
+
+    def __getitem__(self, key):
+        with self.lock:
+            self.cache.move_to_end(key)
+            return self.cache[key]
+
+    def __setitem__(self, key, value):
+        with self.lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
+            self.cache[key] = value
+            if len(self.cache) > self.capacity:
+                self.cache.popitem(last=False)
+
+    def get(self, key, default=None):
+        with self.lock:
+            if key not in self.cache:
+                return default
+            self.cache.move_to_end(key)
+            return self.cache[key]
+
+CACHE_SEARCH = SimpleLRUCache(200)
+CACHE_BOOKLINKS = SimpleLRUCache(300)
 
 # 现代浏览器标头池，规避搜韵网单一 UA 防爬风控拦截
 DEFAULT_HEADERS = {
@@ -199,27 +231,65 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     book_with_quotes = f"《{b_title}》" if b_title else ""
     
     # -------------------------------------------------------------
-    # 智能打分：文献可靠度计算 (Reliability Scoring)
+    # 智能打分：文献考信加权算法 (Evidence Reliability Scoring Matrix)
     # -------------------------------------------------------------
     score = 0
+    level_badge = "历代综合古籍"
     is_bieji = False
+    
+    # 1. 独撰别集判定：著者本人著撰的第一手底本
     if poem_author and poem_author != '未知':
-        if (b_comp and poem_author in b_comp) or (poem_author in b_title and not any(x in b_title for x in ['全集', '选集', '评注', '校注', '集释'])):
-            is_bieji = True
-            
-    if is_bieji:
-        score = 100 # 别集最高
-    elif any(x in b_title for x in ['全唐', '全宋', '全汉', '全上古', '全明', '全清', '先秦汉魏晋南北朝诗', '乐府诗集', '文选']):
-        score = 80  # 权威通代总集
-    elif any(x in b_title for x in ['诗纪', '诗话', '词话', '总龟', '古今图', '绝句', '词综']):
-        score = 50  # 选集/诗文评
-    else:
-        score = 40  # 其他一般古籍
+        if (b_comp and poem_author in b_comp) or (poem_author in b_title):
+            # 区分：若书名包含选、评、注、抄，降级为选注本
+            if any(x in b_title for x in ['评注', '校注', '笺注', '集释', '汇评']):
+                score = 90
+                level_badge = "名家笺注别集"
+                is_bieji = True
+            elif any(x in b_title for x in ['选集', '选', '抄', '摭遗', '名篇']):
+                score = 75
+                level_badge = "后世别集选本"
+                is_bieji = True
+            else:
+                score = 100
+                level_badge = "第一手独撰别集"
+                is_bieji = True
+
+    # 2. 权威断代/通代总集与经典名选
+    if not is_bieji:
+        major_anthologies = [
+            '全唐诗', '全宋诗', '全宋词', '全宋文', '全唐五代诗', '全唐文',
+            '先秦汉魏晋南北朝诗', '全上古三代秦汉三国六朝文', '乐府诗集', '文选', '昭明文选',
+            '玉台新咏', '全金诗', '全元诗', '全元散曲', '全元曲', '全明诗', '全明文',
+            '全清词', '晚晴簃诗汇', '四库全书', '四部丛刊', '古逸丛书', '百部丛书集成', '四部备要'
+        ]
+        classic_selections = [
+            '花间集', '尊前集', '中兴间气集', '唐诗纪事', '宋诗纪事', '宋六十家词',
+            '绝妙好词', '草堂诗余', '词综', '明诗综', '清诗综', '古诗源', '唐诗三百首', '宋词三百首'
+        ]
+        poetics_keywords = [
+            '诗纪', '诗话', '词话', '总龟', '古今图书集成', '艺文类聚', '初学记',
+            '太平御览', '册府元龟', '北堂书钞', '岁时广记', '本事诗', '沧浪诗话', '人间词话'
+        ]
+        
+        if any(x in b_title for x in major_anthologies):
+            score = 85
+            level_badge = "权威通代总集"
+        elif any(x in b_title for x in classic_selections):
+            score = 70
+            level_badge = "经典历代名选"
+        elif any(x in b_title for x in poetics_keywords):
+            score = 50
+            level_badge = "诗话词话辑评"
+        else:
+            score = 40
+            level_badge = "历代综合古籍"
         
     if has_images:
-        score += 10 # 有影印扫描件加分
+        score += 10 # 具有古籍原件影印扫描件实证加分
+    if edition_name:
+        score += 5  # 具备四部丛刊、四库全书等清晰版本信息加分
     if not edition_name and source_type == '文本底层录入来源':
-        score -= 5  # 纯文本扣点分，低于带有版本信息的
+        score -= 5  # 纯文本底层录入来源缺少出版项，信度稍次
         
     # -------------------------------------------------------------
     # 著录格式 1：基础科研格式
@@ -260,14 +330,34 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     if page_str: fmt_mla += f", pp. {page_str}"
     fmt_mla += "."
     
+    # 著录格式 5：BibTeX 规范
+    cite_key = f"{poem_author}_{poem_title}".replace(" ", "_")
+    bib_fields = [
+        f'  author = {{{poem_author}}},',
+        f'  title = {{{poem_title}}},',
+        f'  booktitle = {{{b_title or "未知典籍"}}},'
+    ]
+    if compiler_str:
+        bib_fields.append(f'  editor = {{{compiler_str}}},')
+    if vol:
+        bib_fields.append(f'  volume = {{{vol}}},')
+    if edition_name:
+        bib_fields.append(f'  note = {{{edition_name}}},')
+    if page_str:
+        bib_fields.append(f'  pages = {{{page_str}}},')
+    if poem_dynasty and poem_dynasty != '未知':
+        bib_fields.append(f'  year = {{{poem_dynasty}}},')
+    fmt_bibtex = f"@incollection{{{cite_key},\n" + "\n".join(bib_fields) + "\n}"
+
     unique_hash = hashlib.md5(f"{b_title}_{edition_name}_{vol}".encode('utf-8')).hexdigest()
     
     return {
         "source_type": source_type,
         "score": score,
+        "level_badge": level_badge,
         "has_images": has_images,
         "first_image_url": first_image_url,
-        "basic": fmt_basic, "gbt7714": fmt_gbt, "academic": fmt_academic, "mla": fmt_mla,
+        "basic": fmt_basic, "gbt7714": fmt_gbt, "academic": fmt_academic, "mla": fmt_mla, "bibtex": fmt_bibtex,
         "book": b_title, "volume": vol or "无", "edition": edition_name or "无", "page": page_str,
         "raw_book": book_raw, "hash": unique_hash
     }
@@ -517,12 +607,14 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                     citations_list.append({
                         "source_type": "无来源数据",
                         "score": 0,
+                        "level_badge": "未注来源",
                         "has_images": False,
                         "first_image_url": "",
                         "basic": f"{dynasty}.{author}.《{title}》.搜韵网未注版本.",
                         "gbt7714": f"[{dynasty}] {author}. {title}[M]. 搜韵网.",
                         "academic": f"〔{dynasty}〕{author}：《{title}》，搜韵网未注版本。",
                         "mla": f'{author} ({dynasty}). "{title}." Souyun.',
+                        "bibtex": f"@misc{{{author}_{title},\n  author = {{{author}}},\n  title = {{{title}}},\n  note = {{搜韵网未注版本}}\n}}",
                         "book": "未知", "volume": "无", "edition": "无", "page": "", "raw_book": "无",
                         "hash": "fallback"
                     })
