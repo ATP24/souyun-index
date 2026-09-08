@@ -193,6 +193,7 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     first_image_url = ""
     book_raw = ""
     has_images = False
+    prev_text, matched_text, later_text = "", "", ""
     
     if link:
         book_raw = link.get('Book', '')
@@ -203,7 +204,9 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
             first_image_url = imgs[0] # 底层提取高清原图 CDN 链接
         
         vol_id = str(link.get('VolumeId') or '')
-        prev_text = str(link.get('PreviousText', ''))
+        prev_text = str(link.get('PreviousText') or '').strip()
+        matched_text = str(link.get('MatchedText') or '').strip()
+        later_text = str(link.get('LaterText') or '').strip()
         
         if 'SBCK' in prev_text or 'SBCK' in vol_id:
             edition_name = "商务印书馆《四部丛刊》影印本"
@@ -353,6 +356,8 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
 
     unique_hash = hashlib.md5(f"{b_title}_{edition_name}_{vol}".encode('utf-8')).hexdigest()
     
+    has_context = bool(prev_text or later_text or matched_text)
+
     return {
         "source_type": source_type,
         "score": score,
@@ -361,7 +366,11 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
         "first_image_url": first_image_url,
         "basic": fmt_basic, "gbt7714": fmt_gbt, "academic": fmt_academic, "mla": fmt_mla, "bibtex": fmt_bibtex,
         "book": b_title, "volume": vol or "无", "edition": edition_name or "无", "page": page_str,
-        "raw_book": book_raw, "hash": unique_hash
+        "raw_book": book_raw, "hash": unique_hash,
+        "previous_text": prev_text,
+        "matched_text": matched_text,
+        "later_text": later_text,
+        "has_context": has_context
     }
 
 def translate_error(e):
@@ -508,9 +517,23 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                                 elif isinstance(c, str):
                                     clause_texts.append(c.strip())
                                     
+                            # 提取历代名家汇评集释 (Comments)
+                            raw_comments = w.get('Comments') or []
+                            cleaned_comments = []
+                            for c in raw_comments:
+                                if isinstance(c, dict):
+                                    b_name = c.get('Book') or c.get('FullPath') or '历代诗话'
+                                    c_content = str(c.get('Content') or '').strip()
+                                    if c_content and b_name:
+                                        cleaned_comments.append({
+                                            "book": strip_punctuation(b_name),
+                                            "content": c_content
+                                        })
+
                             results.append({
                                 "id": wid, "title": strip_punctuation(title), "author": strip_punctuation(author),
-                                "dynasty": strip_punctuation(dynasty), "type": poem_type, "clauses": clause_texts, "raw_w": w 
+                                "dynasty": strip_punctuation(dynasty), "type": poem_type, "clauses": clause_texts,
+                                "comments": cleaned_comments, "raw_w": w 
                             })
                             
                     CACHE_SEARCH[query_str] = results

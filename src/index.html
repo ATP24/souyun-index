@@ -354,6 +354,105 @@
         }
 
         /* ---------------------------------------------
+           历代名家汇评与诗话集释面板 (典雅文人辑评体例)
+           --------------------------------------------- */
+        .criticism-container {
+            margin: 20px 0 10px 0;
+            background: #faf8f3;
+            border: 1px solid #e8dfd1;
+            border-radius: 2px;
+            transition: all 0.25s ease;
+        }
+
+        .criticism-details summary {
+            padding: 10px 16px;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            font-size: 13.5px;
+            color: var(--text-main);
+            user-select: none;
+            background: #f7f4ec;
+            border-bottom: 1px solid transparent;
+            transition: background 0.2s;
+        }
+
+        .criticism-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .criticism-details[open] summary {
+            border-bottom-color: #e8dfd1;
+            background: #f4efe4;
+        }
+
+        .criticism-badge {
+            background: rgba(140, 67, 86, 0.08);
+            color: var(--primary);
+            border: 1px solid rgba(140, 67, 86, 0.3);
+            font-size: 11.5px;
+            padding: 1px 6px;
+            margin-right: 8px;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .criticism-title {
+            font-family: var(--font-classical);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .criticism-count {
+            color: var(--text-light);
+            font-size: 12px;
+            margin-left: 6px;
+        }
+
+        .criticism-arrow {
+            margin-left: auto;
+            color: var(--text-light);
+            font-size: 11px;
+            transition: transform 0.2s;
+        }
+
+        .criticism-details[open] .criticism-arrow {
+            transform: rotate(180deg);
+        }
+
+        .criticism-list {
+            padding: 8px 16px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .criticism-item {
+            padding: 10px 0;
+            border-bottom: 1px dashed #e7e0d3;
+            line-height: 1.85;
+        }
+
+        .criticism-item:last-child {
+            border-bottom: none;
+        }
+
+        .criticism-book {
+            color: var(--primary);
+            font-weight: 500;
+            font-size: 13.5px;
+            margin-bottom: 3px;
+            display: inline-block;
+        }
+
+        .criticism-content {
+            color: #3b3631;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            text-align: justify;
+        }
+
+        /* ---------------------------------------------
            出处卡片设计 (彻底去除AI感框与竖纹，回归典雅学人书叶风格)
            --------------------------------------------- */
         .source-container {
@@ -442,6 +541,86 @@
             border: 1px solid #e5dfd2;
             color: #3b352b;
             border-radius: 2px;
+        }
+
+        /* ---------------------------------------------
+           古籍原典前后文语境透视面板 (Chinese Text Project 风格)
+           --------------------------------------------- */
+        .source-context-panel {
+            margin-top: 14px;
+            background: #fbf9f4;
+            border: 1px solid #e5dccf;
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: 2px;
+            animation: fadeInContext 0.2s ease-in-out;
+            text-indent: 0;
+        }
+
+        @keyframes fadeInContext {
+            from { opacity: 0; transform: translateY(-3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .context-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: var(--text-light);
+            border-bottom: 1px dashed #e8e0d3;
+            padding-bottom: 5px;
+            text-indent: 0;
+        }
+
+        .context-tag {
+            color: var(--primary);
+            font-weight: 500;
+            font-family: var(--font-classical);
+        }
+
+        .context-body {
+            font-family: var(--font-classical);
+            font-size: 13.5px;
+            line-height: 1.9;
+            color: #4a433a;
+            white-space: pre-wrap;
+            word-break: break-all;
+            text-indent: 0;
+        }
+
+        .context-prev, .context-later {
+            color: #7a7266;
+        }
+
+        .context-matched {
+            color: var(--primary);
+            background: rgba(140, 67, 86, 0.08);
+            border-bottom: 1.5px solid rgba(140, 67, 86, 0.45);
+            padding: 1px 3px;
+            font-weight: 500;
+            display: inline;
+        }
+
+        .page-break-tag {
+            display: inline-block;
+            color: #8c7355;
+            background: #f0e9dc;
+            border: 1px solid #dcd2c1;
+            border-radius: 2px;
+            padding: 0 4px;
+            font-size: 11px;
+            line-height: 1.4;
+            margin: 0 2px;
+            vertical-align: baseline;
+            user-select: none;
+        }
+
+        .action-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
         }
 
         /* ---------------------------------------------
@@ -714,6 +893,29 @@
             const regex = new RegExp('(' + regexParts.join('|') + ')', 'gi');
             return safeText.replace(regex, '<span class="keyword-highlight">$1</span>');
         }
+
+        function formatContextText(text) {
+            if (!text) return '';
+            let safe = escapeHtml(text);
+            // 将古籍技术叶码标签 <pb:...-25a> 转换为文人叶码标记 〔第25叶a〕
+            safe = safe.replace(/&lt;pb:[^&>]*?-(\d+)([a-zA-Z])&gt;/g, '<span class="page-break-tag">〔第$1叶$2〕</span>');
+            safe = safe.replace(/&lt;pb:([^&>]+)&gt;/g, '<span class="page-break-tag">〔$1〕</span>');
+            return safe;
+        }
+
+        function toggleContext(btn, wid, idx) {
+            const panel = document.getElementById(`context_${wid}_${idx}`);
+            if (!panel) return;
+            if (panel.style.display === 'none' || !panel.style.display) {
+                panel.style.display = 'block';
+                btn.innerHTML = '📜 收起语境 ▴';
+                btn.classList.add('active');
+            } else {
+                panel.style.display = 'none';
+                btn.innerHTML = '📜 原典前后文 ▾';
+                btn.classList.remove('active');
+            }
+        }
         
         function showStatus(message, type) {
             const bar = document.getElementById('statusBar');
@@ -919,6 +1121,30 @@
                 imageBtnHtml = `<button class="action-btn" onclick="openLightbox('${cit.first_image_url}', '${safeTitle}')" title="全屏高清阅览原书扫描件">🖼️ 原书书影</button>`;
             }
 
+            let contextBtnHtml = '';
+            let contextPanelHtml = '';
+            if (cit.has_context) {
+                contextBtnHtml = `<button class="action-btn" onclick="toggleContext(this, '${wid}', ${idx})" title="展开查验古籍原典收录本诗之前后文真实语境">📜 原典前后文 ▾</button>`;
+                
+                const prevText = cit.previous_text ? formatContextText(cit.previous_text) : '';
+                const matchText = cit.matched_text ? formatContextText(cit.matched_text) : '';
+                const laterText = cit.later_text ? formatContextText(cit.later_text) : '';
+                
+                contextPanelHtml = `
+                    <div class="source-context-panel" id="context_${wid}_${idx}" style="display: none;">
+                        <div class="context-header">
+                            <span class="context-tag">📜 古籍原典载录语境</span>
+                            <span>（收录本书时之前后文原貌）</span>
+                        </div>
+                        <div class="context-body">
+                            ${prevText ? `<span class="context-prev">${prevText} </span>` : ''}
+                            ${matchText ? `<span class="context-matched">${matchText}</span>` : ''}
+                            ${laterText ? ` <span class="context-later">${laterText}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="source-container">
                     <div class="source-card">
@@ -929,12 +1155,14 @@
                             </div>
                             
                             <div class="source-actions">
+                                ${contextBtnHtml}
                                 ${imageBtnHtml}
                                 <button class="action-btn" onclick="copyCitationCard(this, '${wid}', ${idx})">📋 复制</button>
                             </div>
                         </div>
                         
                         <div class="citation-content citation-text-node" data-wid="${wid}" data-idx="${idx}">${initialContent}</div>
+                        ${contextPanelHtml}
                     </div>
                 </div>
             `;
@@ -1100,6 +1328,32 @@
                     const highlightedContent = highlightKeywords(fullText, query);
                     const hasBodyMatch = highlightedContent.includes('class="keyword-highlight"');
 
+                    let criticismHtml = '';
+                    if (p.comments && p.comments.length > 0) {
+                        let itemsHtml = p.comments.map(c => `
+                            <div class="criticism-item">
+                                <div class="criticism-book">〔${escapeHtml(c.book)}〕</div>
+                                <div class="criticism-content">${escapeHtml(c.content)}</div>
+                            </div>
+                        `).join('');
+                        
+                        criticismHtml = `
+                            <div class="criticism-container">
+                                <details class="criticism-details">
+                                    <summary>
+                                        <span class="criticism-badge">名家汇评</span>
+                                        <span class="criticism-title">历代名家汇评与诗话集释</span>
+                                        <span class="criticism-count">（收录 ${p.comments.length} 部典籍批点）</span>
+                                        <span class="criticism-arrow">▾</span>
+                                    </summary>
+                                    <div class="criticism-list">
+                                        ${itemsHtml}
+                                    </div>
+                                </details>
+                            </div>
+                        `;
+                    }
+
                     card.innerHTML = `
                         <div class="poem-header">
                             <h3 class="poem-title">${highlightedTitle}</h3>
@@ -1115,6 +1369,8 @@
                                 <button class="expand-btn" onclick="togglePoemText(this)">展开全文</button>
                             </div>
                         </div>
+                        
+                        ${criticismHtml}
                         
                         <div id="${containerId}"></div>
                     `;
