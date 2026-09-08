@@ -464,18 +464,74 @@
         .lightbox-close { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
         .lightbox-close:hover { color: #fff; }
         .lightbox-img-wrapper {
-            padding: 15px;
+            padding: 20px;
+            min-height: 400px;
             overflow: auto;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #151515;
+            background: #141414;
+            position: relative;
         }
+
+        .lightbox-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-family: var(--font-classical);
+            color: #d8cebe;
+            padding: 40px 20px;
+            user-select: none;
+        }
+
+        .classical-spinner {
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(216, 206, 190, 0.2);
+            border-top-color: #d1c7b7;
+            border-radius: 50%;
+            animation: spinClassical 1s linear infinite;
+        }
+
+        @keyframes spinClassical {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 15px;
+            letter-spacing: 2px;
+            color: #f1ebd8;
+        }
+
+        .loading-subtext {
+            font-size: 12px;
+            color: #8c8273;
+            letter-spacing: 1px;
+        }
+
+        .lightbox-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px 20px;
+            font-family: var(--font-classical);
+        }
+
         .lightbox-img-wrapper img {
             max-width: 100%;
             max-height: 75vh;
             object-fit: contain;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        .lightbox-img-wrapper img.loaded {
+            opacity: 1;
         }
     </style>
 </head>
@@ -524,7 +580,17 @@
                 </div>
             </div>
             <div class="lightbox-img-wrapper">
-                <img id="lightboxImg" src="" alt="古籍原书书影" />
+                <div id="lightboxLoading" class="lightbox-loading">
+                    <div class="classical-spinner"></div>
+                    <div class="loading-text">正在从古籍典藏库调取高清书影...</div>
+                    <div class="loading-subtext">四部丛刊 · 历代原刻善本扫描件</div>
+                </div>
+                <div id="lightboxError" class="lightbox-error" style="display: none;">
+                    <div style="font-size: 26px; margin-bottom: 10px;">📜</div>
+                    <div style="color: #e5b9b9; font-size: 14px; margin-bottom: 14px;">古籍影像服务器响应较慢或暂时受限</div>
+                    <a id="lightboxErrorLink" href="#" target="_blank" class="action-btn" style="color: #f1ebd8; border-color: #886666; background: transparent;">在新标签页尝试直接打开原图 ↗</a>
+                </div>
+                <img id="lightboxImg" src="" alt="古籍原书书影" style="display: none;" />
             </div>
         </div>
     </div>
@@ -835,10 +901,38 @@
         // 原书影印 Lightbox
         function openLightbox(imgUrl, title) {
             const lightbox = document.getElementById('imageLightbox');
-            document.getElementById('lightboxImg').src = imgUrl;
+            const img = document.getElementById('lightboxImg');
+            const loading = document.getElementById('lightboxLoading');
+            const errorBox = document.getElementById('lightboxError');
+            const errorLink = document.getElementById('lightboxErrorLink');
+
             document.getElementById('lightboxTitle').textContent = title || '古籍原典高清扫描件';
             document.getElementById('lightboxRawLink').href = imgUrl;
+            if (errorLink) errorLink.href = imgUrl;
+
+            // 初始状态：显示典雅古籍载入动画，隐藏图片与错误信息
+            loading.style.display = 'flex';
+            errorBox.style.display = 'none';
+            img.style.display = 'none';
+            img.classList.remove('loaded');
             lightbox.style.display = 'flex';
+
+            img.onload = function() {
+                loading.style.display = 'none';
+                errorBox.style.display = 'none';
+                img.style.display = 'block';
+                requestAnimationFrame(() => {
+                    img.classList.add('loaded');
+                });
+            };
+
+            img.onerror = function() {
+                loading.style.display = 'none';
+                img.style.display = 'none';
+                errorBox.style.display = 'flex';
+            };
+
+            img.src = imgUrl;
         }
 
         function closeLightbox(e) {
@@ -847,8 +941,12 @@
 
         function closeLightboxDirect() {
             const lightbox = document.getElementById('imageLightbox');
+            const img = document.getElementById('lightboxImg');
             lightbox.style.display = 'none';
-            document.getElementById('lightboxImg').src = '';
+            img.onload = null;
+            img.onerror = null;
+            img.src = '';
+            img.classList.remove('loaded');
         }
 
         document.addEventListener('keydown', (e) => {
