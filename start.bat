@@ -10,7 +10,7 @@ python server.py
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [提示] 检测到 Python 启动异常，尝试以独立程序启动...
-    cd /d "%~dp0\souyun-index-windows"
+    cd /d "%~dp0\releases\v2.0.0"
     if exist "souyun-index-windows.exe" (
         start "" "souyun-index-windows.exe"
     )

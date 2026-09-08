@@ -11,14 +11,18 @@ dist/
 src/build/
 src/dist/
 *.spec
+src/*.spec
 
-# Packaging zips & extracted folders
-souyun-index-windows.zip
-souyun-index-windows/
+# Binary releases & zips (Distributed via GitHub Releases)
+releases/**/*.exe
+releases/**/*.zip
+*.exe
+*.zip
 
-# Logs & temp files
+# Logs & temporary files
 *.log
 src/*.log
+tests/*.log
 .DS_Store
 .vscode/
 .idea/
