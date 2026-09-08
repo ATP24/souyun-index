@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it using the metadata below."
+title: "souyun-index: 古典文学底层书证溯源与古籍原典图谱循证系统"
+authors:
+  - name: "souyun-index contributors"
+version: "2.0.0"
+date-released: "2026-09-08"
+url: "https://github.com/ATP24/souyun-index"
+repository-code: "https://github.com/ATP24/souyun-index"
+license: "MIT"
+keywords:
+  - "digital-humanities"
+  - "chinese-literature"
+  - "ancient-books"
+  - "citation-analysis"
+  - "academic-research"
