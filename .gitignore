@@ -1,0 +1,24 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+
+# PyInstaller / Build artifacts
+build/
+dist/
+src/build/
+src/dist/
+*.spec
+
+# Packaging zips & extracted folders
+souyun-index-windows.zip
+souyun-index-windows/
+
+# Logs & temp files
+*.log
+src/*.log
+.DS_Store
+.vscode/
+.idea/

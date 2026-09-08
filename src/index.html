@@ -405,7 +405,42 @@
     </div>
 
     <script>
+        // -------------------------------------------------------------
+        // 无死锁双模生命周期守护与防节流心跳 (Zero-Deadlock Lifecycle Client)
+        // -------------------------------------------------------------
+        let lastPingTime = 0;
+        function sendHeartbeat() {
+            const now = Date.now();
+            if (now - lastPingTime < 3000) return; // 节流保护：3秒内不重复触发
+            lastPingTime = now;
+            fetch('/api/ping', { method: 'POST', cache: 'no-store' })
+                .catch(() => {});
+        }
 
+        // 1. 周期性心跳（每 10 秒）
+        setInterval(sendHeartbeat, 10000);
+        sendHeartbeat(); // 初始立即发送一次
+
+        // 2. 浏览器切回前台立即补偿保活（解决 Chrome/Edge 后台标签页节流挂起问题）
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                sendHeartbeat();
+            }
+        });
+
+        // 3. 用户交互自动刷新活跃状态
+        window.addEventListener('focus', sendHeartbeat);
+        document.addEventListener('click', sendHeartbeat);
+        document.addEventListener('keydown', sendHeartbeat);
+
+        // 4. 网页关闭时发送双保险安全自毁通知 (sendBeacon)
+        window.addEventListener('beforeunload', () => {
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/api/exit', JSON.stringify({ action: 'unload' }));
+            } else {
+                fetch('/api/exit', { method: 'POST', keepalive: true }).catch(() => {});
+            }
+        });
 
         window.poemDataMap = {};
         window.currentSearchId = 0;

@@ -12,14 +12,103 @@ import hashlib
 import socket
 import webbrowser
 import threading
+import time
 
-if sys.stdout is not None:
-    sys.stdout.reconfigure(encoding='utf-8')
+# ==============================================================================
+# 1. 运行环境安全保护：解决 PyInstaller --windowed 模式下 sys.stdout/stderr 为 None 闪退
+# ==============================================================================
+class SafeOutput:
+    def write(self, s): pass
+    def flush(self): pass
+    def reconfigure(self, **kwargs): pass
+
+if sys.stdout is None:
+    sys.stdout = SafeOutput()
+else:
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+if sys.stderr is None:
+    sys.stderr = SafeOutput()
+else:
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+def safe_log(msg):
+    try:
+        enc = getattr(sys.stdout, 'encoding', 'utf-8') or 'utf-8'
+        clean = str(msg).encode(enc, errors='replace').decode(enc)
+        print(f"[{time.strftime('%H:%M:%S')}] {clean}", flush=True)
+    except Exception:
+        pass
+
+# 禁用全局未认证 SSL 报错（用于古籍 CDN 兼容）
 ctx = ssl._create_unverified_context()
 socketserver.TCPServer.allow_reuse_address = True
 
+# 全局内存缓存
 CACHE_SEARCH = {}
 CACHE_BOOKLINKS = {}
+
+# 现代浏览器标头池，规避搜韵网单一 UA 防爬风控拦截
+DEFAULT_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Origin': 'https://sou-yun.cn',
+    'Referer': 'https://sou-yun.cn/'
+}
+
+# ==============================================================================
+# 2. 无死锁、防节流生命周期与心跳机制 (Zero-Deadlock Lifecycle Architecture)
+# ==============================================================================
+LAST_ACTIVE_TIME = time.time()
+EXIT_TRIGGERED_TIME = None
+CLIENT_CONNECTED = False
+
+def record_activity():
+    """原子化更新活跃时间，无锁、无阻塞、0ms耗时"""
+    global LAST_ACTIVE_TIME, EXIT_TRIGGERED_TIME, CLIENT_CONNECTED
+    LAST_ACTIVE_TIME = time.time()
+    EXIT_TRIGGERED_TIME = None
+    CLIENT_CONNECTED = True
+
+def lifecycle_guard():
+    """
+    独立后台守护线程：负责感知生命周期与平滑安全退出。
+    彻底杜绝原版本中在 Handler 内部调用 server.shutdown() 导致的致命线程互锁/死锁！
+    """
+    global LAST_ACTIVE_TIME, EXIT_TRIGGERED_TIME, CLIENT_CONNECTED
+    while True:
+        try:
+            time.sleep(0.5)
+            now = time.time()
+            exit_time = EXIT_TRIGGERED_TIME
+            last_active = LAST_ACTIVE_TIME
+            
+            # 场景 A：前端通过 beforeunload / sendBeacon 发送了 /api/exit，且超过 3.0 秒安全缓冲
+            if exit_time is not None:
+                elapsed_exit = now - exit_time
+                safe_log(f"守护线程检测到退出信号，已等待 {elapsed_exit:.2f} 秒")
+                if elapsed_exit > 3.0:
+                    safe_log("前端已关闭且超出刷新缓冲期，程序安全自毁退出。")
+                    time.sleep(0.2)
+                    os._exit(0)
+                
+            # 场景 B：前端连接后，超过 90 秒无任何活跃心跳（大幅宽限期，彻底免疫浏览器后台标签页节流）
+            if CLIENT_CONNECTED and (now - last_active > 90.0):
+                safe_log("超过 90 秒无前端活跃信号，程序自动回收退出。")
+                time.sleep(0.3)
+                os._exit(0)
+        except Exception as e:
+            safe_log(f"守护线程异常: {e}")
+
+# 启动独立生命周期守护线程
+threading.Thread(target=lifecycle_guard, daemon=True, name="LifecycleGuard").start()
 
 def get_base_path():
     """获取程序运行时的根目录（兼容 PyInstaller 封包运行和原生运行）"""
@@ -27,20 +116,19 @@ def get_base_path():
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
 
-import time
-last_ping_time = time.time()
-browser_connected = False
-
+# ==============================================================================
+# 3. 古籍文献元数据清洗与考信算法
+# ==============================================================================
 def strip_punctuation(text):
     if not text: return ""
-    text = text.strip()
-    for char in ['《', '》', '〔', '〕', '[', ']', '(', ')', '<', '>']:
+    text = str(text).strip()
+    for char in ['《', '》', '〔', '〕', '[', ']', '(', ')', '<', '>', '〈', '〉']:
         text = text.replace(char, '')
     return text.strip()
 
 def parse_book_metadata(book_raw):
     if not book_raw: return "未知典籍", "", ""
-    parts = book_raw.split('-')
+    parts = str(book_raw).split('-')
     b_title = strip_punctuation(parts[0])
     b_dyn = ""
     b_comp = ""
@@ -53,8 +141,8 @@ def parse_book_metadata(book_raw):
 
 def parse_froms_string(from_str):
     if not from_str: return "", ""
-    from_str = from_str.strip()
-    match = re.search(r'^(.*?)\s*(卷[一二三四五六七八九十百千万零上中下]+.*)$', from_str)
+    from_str = str(from_str).strip()
+    match = re.search(r'^(.*?)\s*(卷[一二三四五六七八九十百千万零上中下0-9]+.*)$', from_str)
     if match:
         return match.group(1).strip(), match.group(2).strip()
     else:
@@ -80,21 +168,21 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
             has_images = True
             first_image_url = imgs[0] # 底层提取高清原图 CDN 链接
         
-        vol_id = link.get('VolumeId') or ''
-        prev_text = link.get('PreviousText', '')
+        vol_id = str(link.get('VolumeId') or '')
+        prev_text = str(link.get('PreviousText', ''))
         
         if 'SBCK' in prev_text or 'SBCK' in vol_id:
             edition_name = "商务印书馆《四部丛刊》影印本"
-        elif any('WYG' in img for img in imgs):
-            m = re.search(r'WYG(\d+)', "".join(imgs))
+        elif any('WYG' in str(img) for img in imgs):
+            m = re.search(r'WYG(\d+)', "".join(str(x) for x in imgs))
             wy_num = f"第 {m.group(1)} 册" if m else ""
             edition_name = f"清文渊阁四库全书影印本 {wy_num}".strip()
 
-        vol_raw = link.get('Volume') or ''
-        vol = strip_punctuation(vol_raw.replace('〈', '').replace('〉', '')) if vol_raw else ''
+        vol_raw = str(link.get('Volume') or '')
+        vol = strip_punctuation(vol_raw) if vol_raw else ''
         start_p, end_p = link.get('StartPage'), link.get('EndPage')
-        if start_p:
-            page_str = f"{start_p}-{end_p}" if (end_p and start_p != end_p) else str(start_p)
+        if start_p is not None:
+            page_str = f"{start_p}-{end_p}" if (end_p is not None and str(start_p) != str(end_p)) else str(start_p)
             
     elif comment_book:
         book_raw = comment_book
@@ -116,14 +204,14 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     score = 0
     is_bieji = False
     if poem_author and poem_author != '未知':
-        if (b_comp and poem_author in b_comp) or (poem_author in b_title):
+        if (b_comp and poem_author in b_comp) or (poem_author in b_title and not any(x in b_title for x in ['全集', '选集', '评注', '校注', '集释'])):
             is_bieji = True
             
     if is_bieji:
         score = 100 # 别集最高
-    elif any(x in b_title for x in ['全唐', '全宋', '全汉', '全上古', '全明', '全清']):
-        score = 80  # 权威总集
-    elif any(x in b_title for x in ['诗纪', '诗话', '词话', '总龟', '古今图']):
+    elif any(x in b_title for x in ['全唐', '全宋', '全汉', '全上古', '全明', '全清', '先秦汉魏晋南北朝诗', '乐府诗集', '文选']):
+        score = 80  # 权威通代总集
+    elif any(x in b_title for x in ['诗纪', '诗话', '词话', '总龟', '古今图', '绝句', '词综']):
         score = 50  # 选集/诗文评
     else:
         score = 40  # 其他一般古籍
@@ -134,7 +222,7 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
         score -= 5  # 纯文本扣点分，低于带有版本信息的
         
     # -------------------------------------------------------------
-    # 基础格式：[时代].[作者].《[篇名]》.载[编者(如有)].《[书名]》.[版本(如有)].[卷号(如有)].[页码(如有)]页.
+    # 著录格式 1：基础科研格式
     # -------------------------------------------------------------
     parts_basic = [poem_dynasty, poem_author, f"《{poem_title}》"]
     if b_title:
@@ -145,7 +233,7 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     if page_str: parts_basic.append(f"{page_str}页")
     fmt_basic = ".".join(p for p in parts_basic if p) + "."
     
-    # 国标格式 (GBT7714)
+    # 著录格式 2：国标 GB/T 7714-2015 格式
     fmt_gbt = f"[{poem_dynasty}] {poem_author}. {poem_title}[A]. 见: "
     if compiler_str: fmt_gbt += f"{compiler_str}(编). "
     vol_str = f": {vol}" if vol else ""
@@ -155,7 +243,7 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     fmt_gbt = fmt_gbt.strip()
     if not fmt_gbt.endswith('.'): fmt_gbt += '.'
     
-    # 学术格式
+    # 著录格式 3：古籍文献学术规范格式
     fmt_academic = f"〔{poem_dynasty}〕{poem_author}：《{poem_title}》，载"
     if compiler_str: fmt_academic += f"{compiler_str}编："
     fmt_academic += book_with_quotes
@@ -164,7 +252,7 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
     if page_str: fmt_academic += f"，第 {page_str} 叶"
     fmt_academic += "。"
 
-    # MLA格式
+    # 著录格式 4：MLA 9th 规范
     fmt_mla = f'{poem_author} ({poem_dynasty}). "{poem_title}." {b_title}'
     if b_comp: fmt_mla += f", edited by {b_comp}"
     if vol: fmt_mla += f", {vol}"
@@ -186,59 +274,115 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
 
 def translate_error(e):
     if isinstance(e, HTTPError):
-        if e.code == 429: return "访问过快，已被搜韵网防DDoS系统限流，请稍后重试 (HTTP 429)"
-        if e.code == 502: return "搜韵网官方服务器当前瘫痪 (502 Bad Gateway)"
-        if e.code >= 500: return f"搜韵网官方接口内部错误 (HTTP {e.code})"
-        return f"搜韵网接口异常 (HTTP {e.code})"
+        if e.code == 429: return "访问频次过高，已被搜韵网流控限制，请稍候重试 (HTTP 429)"
+        if e.code == 502: return "搜韵网网关无响应 (HTTP 502 Bad Gateway)"
+        if e.code >= 500: return f"搜韵网官方接口维护中 (HTTP {e.code})"
+        return f"搜韵网接口返回异常 (HTTP {e.code})"
     elif isinstance(e, URLError) or isinstance(e, socket.timeout):
-        return "无法连接到搜韵网，请检查您的网络连接或稍后重试。"
-    elif isinstance(e, ValueError) and str(e) == "souyun_json_error":
-        return "搜韵网返回了无效的数据格式，可能其官方接口正在维护。"
+        return "网络连接搜韵网超时，请检查您的互联网连接。"
     elif isinstance(e, json.decoder.JSONDecodeError):
-        return "搜韵网返回了无效的数据格式，可能其官方接口正在维护。"
+        return "搜韵网返回非标准数据，接口可能正处于更新或维护中。"
     return str(e)
 
 def send_json_error(handler, status, msg):
     try:
         handler.send_response(status)
         handler.send_header('Content-Type', 'application/json; charset=utf-8')
+        handler.send_header('Access-Control-Allow-Origin', '*')
         handler.end_headers()
         handler.wfile.write(json.dumps({"error": msg}, ensure_ascii=False).encode('utf-8'))
-    except Exception: pass
+    except Exception:
+        pass
 
+# ==============================================================================
+# 4. HTTP 请求调度处理 (PoemCitationHandler)
+# ==============================================================================
 class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, format, *args): pass
+    def log_message(self, format, *args): pass # 静默 HTTP 默认访问日志
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
 
     def do_GET(self):
         try:
             req_path = urlparse(self.path).path.rstrip('/')
-            if req_path == '' or req_path == '/index.html':
+            
+            # 心跳与保活接口 (GET 方式支持)
+            if req_path == '/api/ping':
+                record_activity()
                 self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok", "app": "souyun-index"}, ensure_ascii=False).encode('utf-8'))
+                return
+
+            if req_path == '' or req_path == '/index.html':
+                record_activity()
                 index_path = os.path.join(get_base_path(), 'index.html')
                 if not os.path.exists(index_path):
                     self.send_error(404, "index.html not found")
                     return
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.end_headers()
                 with open(index_path, 'rb') as f:
                     self.wfile.write(f.read())
                 return
+            
             super().do_GET()
-        except Exception as e: 
+        except Exception as e:
             self.send_error(500, str(e))
 
     def do_POST(self):
         try:
             req_path = urlparse(self.path).path.rstrip('/')
+            
+            # 前端退出信号（由 navigator.sendBeacon 触发）
+            if req_path == '/api/exit':
+                global EXIT_TRIGGERED_TIME
+                EXIT_TRIGGERED_TIME = time.time()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "exiting"}, ensure_ascii=False).encode('utf-8'))
+                return
+
+            record_activity()
+            
+            # 心跳与保活接口 (POST 方式)
+            if req_path == '/api/ping':
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok", "app": "souyun-index"}, ensure_ascii=False).encode('utf-8'))
+                return
+
             content_len = int(self.headers.get('Content-Length', 0))
-            post_body = self.rfile.read(content_len).decode('utf-8')
+            post_body = self.rfile.read(content_len).decode('utf-8') if content_len > 0 else '{}'
             try:
                 req_json = json.loads(post_body)
             except json.decoder.JSONDecodeError:
                 req_json = {}
             
+            # -------------------------------------------------------------
+            # API: /api/search (诗词名/名句检索)
+            # -------------------------------------------------------------
             if req_path == '/api/search':
                 query_str = req_json.get('query', '').strip()
+                if not query_str:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"results": []}).encode('utf-8'))
+                    return
+
                 if query_str in CACHE_SEARCH:
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -248,23 +392,17 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                 
                 search_url = "https://open.cnkgraph.com/api/Writing/Find"
                 payload = {"key": query_str, "pageNo": 0}
-                print(f"DEBUG: sending payload to Souyun: {payload}")
-                sreq = urllib.request.Request(
-                    search_url, data=json.dumps(payload).encode('utf-8'),
-                    headers={'Content-Type': 'application/json; charset=utf-8', 'User-Agent': 'Mozilla/5.0'}
-                )
+                headers = dict(DEFAULT_HEADERS)
+                headers['Content-Type'] = 'application/json; charset=utf-8'
                 
+                sreq = urllib.request.Request(search_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
                 results = []
                 try:
-                    with urllib.request.urlopen(sreq, context=ctx, timeout=15) as sresp:
-                        try:
-                            data = json.loads(sresp.read().decode('utf-8'))
-                        except json.decoder.JSONDecodeError:
-                            raise ValueError("souyun_json_error")
-                        
+                    with urllib.request.urlopen(sreq, context=ctx, timeout=12) as sresp:
+                        data = json.loads(sresp.read().decode('utf-8'))
                         writings = data.get('Writings', [])[:10]
                         for w in writings:
-                            wid = w['Id']
+                            wid = w.get('Id')
                             title = w.get('Title', {}).get('Content', '') if isinstance(w.get('Title'), dict) else str(w.get('Title', ''))
                             author = w.get('Author', '未知')
                             dynasty = w.get('Dynasty', '未知')
@@ -274,7 +412,7 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                             clause_texts = []
                             for c in clauses:
                                 if isinstance(c, dict) and 'Content' in c:
-                                    clause_texts.append(c['Content'].strip())
+                                    clause_texts.append(str(c['Content']).strip())
                                 elif isinstance(c, str):
                                     clause_texts.append(c.strip())
                                     
@@ -290,19 +428,19 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({"results": results}, ensure_ascii=False).encode('utf-8'))
                     
                 except HTTPError as e:
-                    err_body = e.read().decode('utf-8') if hasattr(e, 'read') else ''
                     if e.code == 404:
                         self.send_response(200)
                         self.send_header('Content-Type', 'application/json; charset=utf-8')
                         self.end_headers()
-                        self.wfile.write(json.dumps({"results": []}, ensure_ascii=False).encode('utf-8'))
+                        self.wfile.write(json.dumps({"results": []}).encode('utf-8'))
                         return
-                    friendly_err = translate_error(e) + f" | DETAILS: {err_body} | SENT_Q: {query_str}"
-                    send_json_error(self, 500, friendly_err)
+                    send_json_error(self, 500, translate_error(e))
                 except Exception as e:
-                    friendly_err = translate_error(e)
-                    send_json_error(self, 500, friendly_err)
+                    send_json_error(self, 500, translate_error(e))
                 
+            # -------------------------------------------------------------
+            # API: /api/booklinks (底层古籍书证发掘)
+            # -------------------------------------------------------------
             elif req_path == '/api/booklinks':
                 wid = req_json.get('id')
                 raw_w = req_json.get('raw_w', {})
@@ -316,28 +454,27 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                     return
                 
                 burl = f"https://open.cnkgraph.com/api/Writing/{wid}/BookLinks"
-                breq = urllib.request.Request(burl, headers={'User-Agent': 'Mozilla/5.0'})
+                breq = urllib.request.Request(burl, headers=DEFAULT_HEADERS)
                 links_data = []
                 try:
                     with urllib.request.urlopen(breq, context=ctx, timeout=10) as bresp:
-                        try:
-                            bdata = json.loads(bresp.read().decode('utf-8'))
-                        except json.decoder.JSONDecodeError:
-                            raise ValueError("souyun_json_error")
+                        bdata = json.loads(bresp.read().decode('utf-8'))
                         links_data = bdata.get('Links') or []
                 except HTTPError as e:
                     if e.code == 404: links_data = []
                     else:
-                        import traceback; traceback.print_exc(); print('DEBUG EXCEPTION:', repr(e)); import traceback; traceback.print_exc(); send_json_error(self, 500, translate_error(e))
+                        safe_log(f"请求 BookLinks 异常: {repr(e)}")
+                        send_json_error(self, 500, translate_error(e))
                         return
                 except Exception as e:
-                    import traceback; traceback.print_exc(); print('DEBUG EXCEPTION:', repr(e)); import traceback; traceback.print_exc(); send_json_error(self, 500, translate_error(e))
+                    safe_log(f"请求 BookLinks 错误: {repr(e)}")
+                    send_json_error(self, 500, translate_error(e))
                     return
                 
                 citations_list = []
                 seen_hashes = set()
                 
-                # 1. BookLinks
+                # 1. 实体影印本 (BookLinks)
                 if links_data:
                     for link in links_data:
                         cit = build_single_citation(raw_w, link=link, source_type="古籍实体影印本")
@@ -346,7 +483,7 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                             seen_hashes.add(h)
                             citations_list.append(cit)
                 
-                # 2. Froms
+                # 2. 文本录入底本 (Froms)
                 froms = raw_w.get('Froms') or []
                 for f_str in froms:
                     if isinstance(f_str, str) and f_str.strip():
@@ -356,22 +493,22 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                             seen_hashes.add(h)
                             citations_list.append(cit)
 
-                # 3. Comments
+                # 3. 评注与收录记录 (Comments)
                 comments = raw_w.get('Comments') or []
                 for comment in comments:
                     if isinstance(comment, dict):
                         book_name = comment.get('Book')
                         if book_name:
-                            cit = build_single_citation(raw_w, comment_book=book_name, source_type="批注与收录记录")
+                            cit = build_single_citation(raw_w, comment_book=str(book_name), source_type="批注与收录记录")
                             h = cit['hash']
                             if h not in seen_hashes:
                                 seen_hashes.add(h)
                                 citations_list.append(cit)
                 
-                # 按照可靠度降序排列 (Reliability Sorting)
+                # 可靠度降序排列 (按考信算法加权分数)
                 citations_list.sort(key=lambda x: x['score'], reverse=True)
                 
-                # 保底方案
+                # 无来源保底方案
                 if not citations_list:
                     raw_t = raw_w.get('Title', {}).get('Content', '') if isinstance(raw_w.get('Title'), dict) else str(raw_w.get('Title', ''))
                     title = strip_punctuation(raw_t) or '未知诗题'
@@ -398,9 +535,42 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 send_json_error(self, 404, "无效的 API 路由")
         except Exception as e:
-            import traceback; traceback.print_exc()
-            send_json_error(self, 500, f"服务器内部错误: {str(e)}")
+            safe_log(f"服务器内部异常: {str(e)}")
+            send_json_error(self, 500, f"服务器处理异常: {str(e)}")
 
+# ==============================================================================
+# 5. 服务探活与启动管理
+# ==============================================================================
+def check_existing_instance(start_port=8080, max_port=8090):
+    """极致高速单实例自探：原生 socket 毫秒级探测，绝不阻塞"""
+    for port in range(start_port, max_port + 1):
+        is_open = False
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.04)
+                if s.connect_ex(('127.0.0.1', port)) == 0:
+                    is_open = True
+        except Exception:
+            pass
+
+        if is_open:
+            try:
+                # 显式使用空代理，防止被环境变量中的代理劫持本地回环
+                proxy_handler = urllib.request.ProxyHandler({})
+                opener = urllib.request.build_opener(proxy_handler)
+                req = urllib.request.Request(
+                    f"http://127.0.0.1:{port}/api/ping",
+                    headers={'User-Agent': 'souyun-index-probe'},
+                    method='GET'
+                )
+                with opener.open(req, timeout=0.5) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode('utf-8'))
+                        if data.get('app') == 'souyun-index':
+                            return port
+            except Exception:
+                continue
+    return None
 
 def find_free_port(start_port=8080, max_port=8090):
     for port in range(start_port, max_port + 1):
@@ -413,23 +583,34 @@ def find_free_port(start_port=8080, max_port=8090):
     raise OSError(f"未找到空闲端口，已尝试 {start_port}-{max_port}")
 
 def open_browser(url):
-    import time
-    time.sleep(0.5)
-    webbrowser.open(url)
+    time.sleep(0.4)
+    try:
+        webbrowser.open(url)
+    except Exception:
+        pass
 
 if __name__ == '__main__':
+    # 步骤 1：单实例检测（防止用户连续双击造成多进程多开）
+    existing_port = check_existing_instance()
+    if existing_port:
+        safe_log(f"检测到服务已在端口 {existing_port} 运行，自动唤醒浏览器页面...")
+        open_browser(f"http://localhost:{existing_port}")
+        sys.exit(0)
+
+    # 步骤 2：启动全新服务实例
     try:
         PORT = find_free_port()
-        # ThreadingHTTPServer 确保不会卡死
         server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), PoemCitationHandler)
         url = f"http://localhost:{PORT}"
-        print(f"搜韵网收录诗文出处循证系统已启动！")
-        print(f"服务器地址: {url}")
-        print("按 Ctrl+C 可停止服务器...")
         
-        threading.Thread(target=open_browser, args=(url,), daemon=True).start()
+        safe_log("==================================================")
+        safe_log("[READY] 搜韵网收录诗文出处循证系统已成功就绪！")
+        safe_log(f"[INFO] 服务访问地址: {url}")
+        safe_log("==================================================")
         
+        if os.environ.get("NO_BROWSER") != "1":
+            threading.Thread(target=open_browser, args=(url,), daemon=True).start()
         server.serve_forever()
     except Exception as e:
-        print(f"启动失败: {e}")
-        input("按回车键退出...")
+        safe_log(f"服务启动失败: {e}")
+        time.sleep(2)
