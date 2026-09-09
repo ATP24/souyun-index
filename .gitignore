@@ -25,6 +25,8 @@ releases/
 push_to_github.bat
 build.bat
 start.bat
+启动系统.bat
+*.bat
 start.sh
 requirements.txt
 

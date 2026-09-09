@@ -591,80 +591,44 @@
         .context-flow {
             font-family: var(--font-classical);
             font-size: 14px;
-            line-height: 2.0;
-            color: #38322a;
+            line-height: 2.1;
+            color: #423d35;
             text-align: justify;
+            word-break: break-all;
         }
 
-        /* 结构化三段式 (前文 · 本篇 · 后文) */
-        .context-section {
-            margin-bottom: 12px;
-            position: relative;
-        }
-        .context-section:last-child {
-            margin-bottom: 0;
+        /* 前文与后文：松烟淡墨，静穆内敛，烘托语境 */
+        .context-prev,
+        .context-later {
+            color: #787063;
+            font-size: 13.8px;
+            line-height: 2.05;
         }
 
-        .context-sec-badge {
-            display: inline-block;
-            font-size: 11px;
-            padding: 1px 7px;
+        /* 本文核心：徽墨浓郁、温润宣纸底衬、胭脂朱砂下划线、多行自然连缀 */
+        .context-matched {
+            color: #1a1714;
+            font-weight: 500;
+            font-size: 14.5px;
+            line-height: 2.15;
+            background: rgba(140, 67, 86, 0.055);
+            border-bottom: 2px solid rgba(140, 67, 86, 0.38);
+            padding: 2px 5px;
+            margin: 0 1px;
             border-radius: 2px;
-            margin-right: 8px;
-            user-select: none;
-            vertical-align: middle;
-            font-family: var(--font-classical);
-            letter-spacing: 0.5px;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+            display: inline;
         }
 
-        .context-prev-badge {
-            background: #f0eae0;
-            color: #7a7062;
-            border: 1px solid #ded5c5;
-        }
-
-        .context-match-badge {
-            background: rgba(140, 67, 86, 0.1);
-            color: var(--primary);
-            border: 1px solid rgba(140, 67, 86, 0.3);
-            font-weight: 500;
-        }
-
-        .context-later-badge {
-            background: #f0eae0;
-            color: #7a7062;
-            border: 1px solid #ded5c5;
-        }
-
-        .context-prev-sec .context-sec-body,
-        .context-later-sec .context-sec-body {
-            color: #696156;
-            font-size: 13.5px;
-            line-height: 1.95;
-        }
-
-        /* 核心本篇实况卡片：古雅聚焦 */
-        .context-match-sec {
-            margin: 10px 0;
-        }
-        .context-match-card {
-            background: rgba(140, 67, 86, 0.04);
-            border-left: 2.5px solid var(--primary);
-            padding: 8px 14px;
-            margin-top: 6px;
-            color: #2b2b2b;
-            font-size: 14px;
-            line-height: 2.0;
-            border-radius: 1px;
-        }
-
-        /* 诗句与检索词双重朱砂微晕 */
+        /* 检索关键词：朱砂古雅聚焦穿透 */
         .context-kw-highlight {
-            background: rgba(140, 67, 86, 0.15);
             color: #8c4356;
+            background: rgba(140, 67, 86, 0.16);
             border-bottom: 2px solid #8c4356;
+            font-weight: 600;
             padding: 0 2px;
-            font-weight: 500;
+            border-radius: 1px;
         }
 
         /* 古籍原典叶码文人书叶微标 */
@@ -1246,46 +1210,29 @@
             const totalLen = (prevRaw || '').length + (matchRaw || '').length + (laterRaw || '').length;
             const isLong = totalLen > 320;
 
-            let sections = [];
+            let parts = [];
             if (cleanedPrev) {
-                sections.push(`
-                    <div class="context-section context-prev-sec">
-                        <span class="context-sec-badge context-prev-badge">前文载录</span>
-                        <span class="context-sec-body">${cleanedPrev}</span>
-                    </div>
-                `);
+                parts.push(`<span class="context-prev">${cleanedPrev}</span>`);
             }
-
             if (cleanedMatch) {
-                sections.push(`
-                    <div class="context-section context-match-sec">
-                        <span class="context-sec-badge context-match-badge">本篇实况</span>
-                        <div class="context-match-card">${cleanedMatch}</div>
-                    </div>
-                `);
+                parts.push(`<span class="context-matched">${cleanedMatch}</span>`);
             }
-
             if (cleanedLater) {
-                sections.push(`
-                    <div class="context-section context-later-sec">
-                        <span class="context-sec-badge context-later-badge">后文续考</span>
-                        <span class="context-sec-body">${cleanedLater}</span>
-                    </div>
-                `);
+                parts.push(`<span class="context-later">${cleanedLater}</span>`);
             }
 
-            if (sections.length === 0) {
+            if (parts.length === 0) {
                 return '<div class="context-flow" style="color:var(--text-light); font-style:italic;">原典前后文字符缺失或未录入</div>';
             }
 
-            const innerHtml = sections.join('');
+            const innerHtml = parts.join(' ');
 
             if (isLong) {
                 return `
                     <div class="context-scroll-wrap" id="context_wrap_${wid}_${idx}">
                         <div class="context-flow">${innerHtml}</div>
                         <div class="context-gradient-overlay" id="context_overlay_${wid}_${idx}">
-                            <button class="context-expand-btn" onclick="toggleContextExpand(this, '${wid}', ${idx})">📜 展开全部典籍语境 (共约 ${totalLen} 字) ▾</button>
+                            <button class="context-expand-btn" onclick="toggleContextExpand(this, '${wid}', ${idx})">📜 展开完整典籍语境 (共约 ${totalLen} 字) ▾</button>
                         </div>
                     </div>
                 `;
@@ -1543,8 +1490,8 @@
                     <div class="source-context-panel" id="context_${wid}_${idx}" style="display: none;">
                         <div class="context-header">
                             <div class="context-header-left">
-                                <span class="context-tag">📜 古籍原典载录语境透视</span>
-                                <span>（还原典籍刻印版面及前后文）</span>
+                                <span class="context-tag">📜 古籍原典前后文透视</span>
+                                <span style="font-size:12px; color:#857c6e;">（深色底衬为本篇诗文 · 淡墨为前后文原貌）</span>
                             </div>
                         </div>
                         ${structuredHtml}
