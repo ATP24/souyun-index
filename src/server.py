@@ -52,6 +52,11 @@ def safe_log(msg):
 ctx = ssl._create_unverified_context()
 socketserver.TCPServer.allow_reuse_address = True
 
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        return getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
 from collections import OrderedDict
 
 # 线程安全轻量 LRU 缓存，防止长周期运行内存泄露
@@ -527,7 +532,7 @@ class PoemCitationHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "ok", "app": "souyun-index"}, ensure_ascii=False).encode('utf-8'))
                 return
 
-            if req_path == '' or req_path == '/index.html':
+            if req_path in ('', '/', '/index.html', '/index.htm'):
                 record_activity()
                 index_path = os.path.join(get_base_path(), 'index.html')
                 if not os.path.exists(index_path):

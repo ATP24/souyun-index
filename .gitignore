@@ -1,4 +1,4 @@
-﻿# Python artifacts
+# Python artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,16 +7,20 @@ __pycache__/
 
 # PyInstaller / Build artifacts
 build/
-dist/
 src/build/
 src/dist/
 *.spec
 src/*.spec
 souyun-index-windows/
 
+# Distribution package (Allow prebuilt windows exe in root dist)
+!/dist/
+!/dist/**
+
 # Local Release archives & scripts
 releases/
 *.exe
+!/dist/*.exe
 *.zip
 push_to_github.bat
 build.bat
