@@ -10,7 +10,7 @@ echo.
 where python >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo [INFO] 检测到本地 Python 环境，正在启动服务...
-    python main.py
+    python src\server.py
     goto end
 )
 
