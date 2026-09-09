@@ -814,7 +814,7 @@ def open_browser(url):
     except Exception:
         pass
 
-if __name__ == '__main__':
+def main():
     # 步骤 1：单实例检测（防止用户连续双击造成多进程多开）
     existing_port = check_existing_instance()
     if existing_port:
@@ -839,3 +839,6 @@ if __name__ == '__main__':
     except Exception as e:
         safe_log(f"服务启动失败: {e}")
         time.sleep(2)
+
+if __name__ == '__main__':
+    main()
