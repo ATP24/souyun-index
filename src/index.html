@@ -544,77 +544,214 @@
         }
 
         /* ---------------------------------------------
-           古籍原典前后文语境透视面板 (Chinese Text Project 风格)
+           古籍原典前后文语境透视面板 (典雅古籍整理本排印体例)
            --------------------------------------------- */
         .source-context-panel {
             margin-top: 14px;
-            background: #fbf9f4;
+            background: #faf8f3;
             border: 1px solid #e5dccf;
             border-left: 3px solid var(--primary);
-            padding: 12px 16px;
+            padding: 14px 18px;
             border-radius: 2px;
-            animation: fadeInContext 0.2s ease-in-out;
+            animation: fadeInContext 0.25s ease-in-out;
             text-indent: 0;
+            position: relative;
         }
 
         @keyframes fadeInContext {
-            from { opacity: 0; transform: translateY(-3px); }
+            from { opacity: 0; transform: translateY(-4px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .context-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            justify-content: space-between;
+            margin-bottom: 12px;
             font-size: 12px;
             color: var(--text-light);
             border-bottom: 1px dashed #e8e0d3;
-            padding-bottom: 5px;
+            padding-bottom: 6px;
             text-indent: 0;
+        }
+
+        .context-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .context-tag {
             color: var(--primary);
             font-weight: 500;
             font-family: var(--font-classical);
+            letter-spacing: 0.5px;
         }
 
-        .context-body {
+        .context-flow {
             font-family: var(--font-classical);
-            font-size: 13.5px;
-            line-height: 1.9;
-            color: #4a433a;
-            white-space: pre-wrap;
-            word-break: break-all;
-            text-indent: 0;
+            font-size: 14px;
+            line-height: 2.0;
+            color: #38322a;
+            text-align: justify;
         }
 
-        .context-prev, .context-later {
-            color: #7a7266;
+        /* 结构化三段式 (前文 · 本篇 · 后文) */
+        .context-section {
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .context-section:last-child {
+            margin-bottom: 0;
         }
 
-        .context-matched {
-            color: var(--primary);
-            background: rgba(140, 67, 86, 0.08);
-            border-bottom: 1.5px solid rgba(140, 67, 86, 0.45);
-            padding: 1px 3px;
-            font-weight: 500;
-            display: inline;
-        }
-
-        .page-break-tag {
+        .context-sec-badge {
             display: inline-block;
-            color: #8c7355;
-            background: #f0e9dc;
-            border: 1px solid #dcd2c1;
-            border-radius: 2px;
-            padding: 0 4px;
             font-size: 11px;
-            line-height: 1.4;
-            margin: 0 2px;
+            padding: 1px 7px;
+            border-radius: 2px;
+            margin-right: 8px;
+            user-select: none;
+            vertical-align: middle;
+            font-family: var(--font-classical);
+            letter-spacing: 0.5px;
+        }
+
+        .context-prev-badge {
+            background: #f0eae0;
+            color: #7a7062;
+            border: 1px solid #ded5c5;
+        }
+
+        .context-match-badge {
+            background: rgba(140, 67, 86, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(140, 67, 86, 0.3);
+            font-weight: 500;
+        }
+
+        .context-later-badge {
+            background: #f0eae0;
+            color: #7a7062;
+            border: 1px solid #ded5c5;
+        }
+
+        .context-prev-sec .context-sec-body,
+        .context-later-sec .context-sec-body {
+            color: #696156;
+            font-size: 13.5px;
+            line-height: 1.95;
+        }
+
+        /* 核心本篇实况卡片：古雅聚焦 */
+        .context-match-sec {
+            margin: 10px 0;
+        }
+        .context-match-card {
+            background: rgba(140, 67, 86, 0.04);
+            border-left: 2.5px solid var(--primary);
+            padding: 8px 14px;
+            margin-top: 6px;
+            color: #2b2b2b;
+            font-size: 14px;
+            line-height: 2.0;
+            border-radius: 1px;
+        }
+
+        /* 诗句与检索词双重朱砂微晕 */
+        .context-kw-highlight {
+            background: rgba(140, 67, 86, 0.15);
+            color: #8c4356;
+            border-bottom: 2px solid #8c4356;
+            padding: 0 2px;
+            font-weight: 500;
+        }
+
+        /* 古籍原典叶码文人书叶微标 */
+        .page-break-tag {
+            display: inline-flex;
+            align-items: center;
+            color: #8c7355;
+            background: #f2ebd9;
+            border: 1px solid #ddd2be;
+            border-radius: 2px;
+            padding: 0 5px;
+            font-size: 11px;
+            line-height: 1.5;
+            margin: 0 4px;
             vertical-align: baseline;
             user-select: none;
+            font-family: var(--font-classical);
+            letter-spacing: 0.5px;
+        }
+
+        /* 文人小字夹注 / 双行注 */
+        .context-annotation {
+            font-size: 0.88em;
+            color: #7d7265;
+            background: rgba(0, 0, 0, 0.02);
+            padding: 0 2px;
+            border-radius: 2px;
+            font-style: normal;
+        }
+
+        /* 词律韵位标记 */
+        .metre-badge {
+            font-size: 10.5px;
+            color: #8c7b68;
+            background: #ebe4d5;
+            border: 1px solid #ded5c5;
+            border-radius: 2px;
+            padding: 0 3px;
+            margin: 0 3px;
+            vertical-align: baseline;
+        }
+
+        /* 超长语境折叠与渐变蒙层 */
+        .context-scroll-wrap {
+            max-height: 260px;
+            overflow: hidden;
+            position: relative;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .context-scroll-wrap.expanded {
+            max-height: none;
+        }
+
+        .context-gradient-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background: linear-gradient(transparent, #faf8f3 80%);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 2px;
+        }
+        .context-scroll-wrap.expanded .context-gradient-overlay {
+            position: static;
+            height: auto;
+            background: none;
+            margin-top: 10px;
+        }
+
+        .context-expand-btn {
+            background: #f4eee2;
+            border: 1px solid #d8cebe;
+            color: var(--primary);
+            font-family: var(--font-classical);
+            font-size: 12px;
+            padding: 3px 16px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .context-expand-btn:hover {
+            background: #eae2d2;
+            color: var(--primary-hover);
         }
 
         .action-btn.active {
@@ -994,13 +1131,179 @@
             return safeText.replace(regex, '<span class="keyword-highlight">$1</span>');
         }
 
-        function formatContextText(text) {
-            if (!text) return '';
-            let safe = escapeHtml(text);
-            // 将古籍技术叶码标签 <pb:...-25a> 转换为文人叶码标记 〔第25叶a〕
-            safe = safe.replace(/&lt;pb:[^&>]*?-(\d+)([a-zA-Z])&gt;/g, '<span class="page-break-tag">〔第$1叶$2〕</span>');
-            safe = safe.replace(/&lt;pb:([^&>]+)&gt;/g, '<span class="page-break-tag">〔$1〕</span>');
+        function cleanClassicalContextText(raw) {
+            if (!raw) return '';
+            let s = String(raw);
+
+            // 1. 过滤数据库代码与元数据注释 (# src: ... # dating: ...)
+            s = s.replace(/#\s*(src|dating):[^\r\n]*/gi, '');
+
+            // 2. 预先处理叶码前后换行，将其平滑独立
+            s = s.replace(/[\r\n\s]*(<(pb|md):[^>]+>)[\r\n\s]*/g, ' $1 ');
+
+            // 3. 缝合 OCR 双行小字注断裂: ")\n(" 缝合为连续注记
+            s = s.replace(/\)\s*[\r\n]+[\s\u3000]*\(/g, '');
+            s = s.replace(/）\s*[\r\n]+[\s\u3000]*（/g, '');
+
+            // 4. 清除 OCR 列断斜杠噪点 (如 "(一作/天)", "开元之/盛矣", "(韵/)")
+            s = s.replace(/\s*\/\s*/g, '');
+
+            // 5. 规整词曲格律标记
+            s = s.replace(/[（\(]韵[）\)]/g, '〔韵〕')
+                 .replace(/[（\(]叶[）\)]/g, '〔叶〕')
+                 .replace(/[（\(]句[）\)]/g, '〔句〕')
+                 .replace(/丨丨/g, '〔同上〕');
+
+            // 6. 版刻列宽伪换行智能合并
+            const rawLines = s.split(/\r?\n/);
+            let merged = [];
+            for (let i = 0; i < rawLines.length; i++) {
+                let cur = rawLines[i].trim();
+                if (!cur) continue;
+
+                if (merged.length > 0) {
+                    let prev = merged[merged.length - 1];
+                    // 判断是否平滑连缀：
+                    // 若上一行结尾不是终结标点（。！？；），且当前行不是新起首（如 〇、按、题名等）
+                    let shouldMerge = false;
+                    if (!/[。！？；:：]$/.test(prev) &&
+                        !/[曰云按]$/.test(prev) &&
+                        !/^[〇《#]/.test(cur) &&
+                        !/^(按|题|前题|诗曰|赋曰)/.test(cur)) {
+                        shouldMerge = true;
+                    }
+
+                    if (shouldMerge) {
+                        merged[merged.length - 1] = prev + cur;
+                    } else {
+                        merged.push(cur);
+                    }
+                } else {
+                    merged.push(cur);
+                }
+            }
+            s = merged.join('\n');
+
+            // 7. 收敛连续全角空格与空白
+            s = s.replace(/[\u3000\s]{3,}/g, ' ');
+
+            // 8. 针对圈点符号 〇 换行并呼吸缩进
+            s = s.replace(/〇/g, '\n〇 ');
+
+            // 9. HTML 转义
+            let safe = escapeHtml(s);
+
+            // 10. 转译叶码微标：将 <pb:...> 与 <md:...> 转换为文人书叶徽标
+            safe = safe.replace(/&lt;(pb|md):(?:[^&>]*?-)?(\d+)([a-zA-Z])&gt;/g, (match, type, page, leaf) => {
+                const side = (leaf.toLowerCase() === 'a') ? '正' : (leaf.toLowerCase() === 'b' ? '背' : leaf);
+                const pNum = parseInt(page, 10);
+                return `<span class="page-break-tag" title="古籍原典书页：第${pNum}叶${side}">〔第${pNum}叶${side}〕</span>`;
+            });
+            safe = safe.replace(/&lt;(pb|md):(?:[^&>]*?-)?(\d+)&gt;/g, (match, type, page) => {
+                const pNum = parseInt(page, 10);
+                return `<span class="page-break-tag" title="古籍原典书页：第${pNum}叶">〔第${pNum}叶〕</span>`;
+            });
+            safe = safe.replace(/&lt;(pb|md):([^&>]+)&gt;/g, '<span class="page-break-tag" title="古籍原典书页标记">〔$2〕</span>');
+
+            // 11. 将夹注文本样式化 (小字双行注、版本异文、校勘)
+            safe = safe.replace(/(\([^\n<>()]{2,120}\)|（[^\n<>（）]{2,120}）|〈[^\n<>〈〉]{2,120}〉)/g, 
+                '<span class="context-annotation">$1</span>');
+
+            // 12. 格式化段落换行
+            safe = safe.replace(/\n+/g, '<br>');
+
             return safe;
+        }
+
+        function highlightContextKeywords(htmlText, query) {
+            if (!htmlText || !query) return htmlText;
+            const kws = extractKeywords(query);
+            if (kws.length === 0) return htmlText;
+            
+            // 拆分 HTML 标签与纯文本，安全高亮纯文本部分
+            const parts = htmlText.split(/(<[^>]+>)/g);
+            for (let i = 0; i < parts.length; i += 2) {
+                let textPart = parts[i];
+                for (let kw of kws) {
+                    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp('(' + escaped + ')', 'gi');
+                    textPart = textPart.replace(regex, '<span class="context-kw-highlight">$1</span>');
+                }
+                parts[i] = textPart;
+            }
+            return parts.join('');
+        }
+
+        function formatStructuredContext(prevRaw, matchRaw, laterRaw, query, wid, idx) {
+            const cleanedPrev = cleanClassicalContextText(prevRaw);
+            let cleanedMatch = cleanClassicalContextText(matchRaw);
+            const cleanedLater = cleanClassicalContextText(laterRaw);
+
+            if (query) {
+                cleanedMatch = highlightContextKeywords(cleanedMatch, query);
+            }
+
+            const totalLen = (prevRaw || '').length + (matchRaw || '').length + (laterRaw || '').length;
+            const isLong = totalLen > 320;
+
+            let sections = [];
+            if (cleanedPrev) {
+                sections.push(`
+                    <div class="context-section context-prev-sec">
+                        <span class="context-sec-badge context-prev-badge">前文载录</span>
+                        <span class="context-sec-body">${cleanedPrev}</span>
+                    </div>
+                `);
+            }
+
+            if (cleanedMatch) {
+                sections.push(`
+                    <div class="context-section context-match-sec">
+                        <span class="context-sec-badge context-match-badge">本篇实况</span>
+                        <div class="context-match-card">${cleanedMatch}</div>
+                    </div>
+                `);
+            }
+
+            if (cleanedLater) {
+                sections.push(`
+                    <div class="context-section context-later-sec">
+                        <span class="context-sec-badge context-later-badge">后文续考</span>
+                        <span class="context-sec-body">${cleanedLater}</span>
+                    </div>
+                `);
+            }
+
+            if (sections.length === 0) {
+                return '<div class="context-flow" style="color:var(--text-light); font-style:italic;">原典前后文字符缺失或未录入</div>';
+            }
+
+            const innerHtml = sections.join('');
+
+            if (isLong) {
+                return `
+                    <div class="context-scroll-wrap" id="context_wrap_${wid}_${idx}">
+                        <div class="context-flow">${innerHtml}</div>
+                        <div class="context-gradient-overlay" id="context_overlay_${wid}_${idx}">
+                            <button class="context-expand-btn" onclick="toggleContextExpand(this, '${wid}', ${idx})">📜 展开全部典籍语境 (共约 ${totalLen} 字) ▾</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `<div class="context-flow">${innerHtml}</div>`;
+            }
+        }
+
+        function toggleContextExpand(btn, wid, idx) {
+            const wrap = document.getElementById(`context_wrap_${wid}_${idx}`);
+            if (!wrap) return;
+            if (wrap.classList.contains('expanded')) {
+                wrap.classList.remove('expanded');
+                btn.innerHTML = `📜 展开全部典籍语境 ▾`;
+            } else {
+                wrap.classList.add('expanded');
+                btn.innerHTML = `📜 收起部分语境 ▴`;
+            }
         }
 
         function toggleContext(btn, wid, idx) {
@@ -1227,21 +1530,24 @@
             if (cit.has_context) {
                 contextBtnHtml = `<button class="action-btn" onclick="toggleContext(this, '${wid}', ${idx})" title="展开查验古籍原典收录本诗之前后文真实语境">📜 原典前后文 ▾</button>`;
                 
-                const prevText = cit.previous_text ? formatContextText(cit.previous_text) : '';
-                const matchText = cit.matched_text ? formatContextText(cit.matched_text) : '';
-                const laterText = cit.later_text ? formatContextText(cit.later_text) : '';
+                const structuredHtml = formatStructuredContext(
+                    cit.previous_text,
+                    cit.matched_text,
+                    cit.later_text,
+                    window.currentSearchQuery,
+                    wid,
+                    idx
+                );
                 
                 contextPanelHtml = `
                     <div class="source-context-panel" id="context_${wid}_${idx}" style="display: none;">
                         <div class="context-header">
-                            <span class="context-tag">📜 古籍原典载录语境</span>
-                            <span>（收录本书时之前后文原貌）</span>
+                            <div class="context-header-left">
+                                <span class="context-tag">📜 古籍原典载录语境透视</span>
+                                <span>（还原典籍刻印版面及前后文）</span>
+                            </div>
                         </div>
-                        <div class="context-body">
-                            ${prevText ? `<span class="context-prev">${prevText} </span>` : ''}
-                            ${matchText ? `<span class="context-matched">${matchText}</span>` : ''}
-                            ${laterText ? ` <span class="context-later">${laterText}</span>` : ''}
-                        </div>
+                        ${structuredHtml}
                     </div>
                 `;
             }

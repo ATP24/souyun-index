@@ -224,6 +224,13 @@ def parse_froms_string(from_str):
     else:
         return from_str, ""
 
+def clean_raw_context_lines(text):
+    """剔除先秦汉魏数据库底层残留的学术元数据代码注释（如 # src: ... # dating: ...）"""
+    if not text: return ""
+    lines = str(text).split('\n')
+    filtered = [l for l in lines if not l.strip().startswith('# src:') and not l.strip().startswith('# dating:')]
+    return '\n'.join(filtered).strip()
+
 def build_single_citation(poem_data, link=None, comment_book=None, source_type="BookLinks"):
     raw_title = poem_data.get('Title', {}).get('Content', '') if isinstance(poem_data.get('Title'), dict) else str(poem_data.get('Title', ''))
     poem_title = strip_punctuation(raw_title) or '未知诗题'
@@ -247,9 +254,9 @@ def build_single_citation(poem_data, link=None, comment_book=None, source_type="
             first_image_url = page_images[0] # 底层提取首页高清原图 CDN 链接
         
         vol_id = str(link.get('VolumeId') or '')
-        prev_text = str(link.get('PreviousText') or '').strip()
-        matched_text = str(link.get('MatchedText') or '').strip()
-        later_text = str(link.get('LaterText') or '').strip()
+        prev_text = clean_raw_context_lines(link.get('PreviousText'))
+        matched_text = clean_raw_context_lines(link.get('MatchedText'))
+        later_text = clean_raw_context_lines(link.get('LaterText'))
         
         if 'SBCK' in prev_text or 'SBCK' in vol_id:
             edition_name = "商务印书馆《四部丛刊》影印本"
