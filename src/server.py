@@ -97,35 +97,42 @@ DEFAULT_HEADERS = {
     'Referer': 'https://sou-yun.cn/'
 }
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+try:
+    import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
-SESSION = requests.Session()
-retries = Retry(
-    total=3,
-    connect=3,
-    read=3,
-    backoff_factor=0.5,
-    status_forcelist=[429, 500, 502, 503, 504],
-    raise_on_status=False
-)
-adapter = HTTPAdapter(pool_connections=25, pool_maxsize=40, max_retries=retries)
-SESSION.mount("https://", adapter)
-SESSION.mount("http://", adapter)
-SESSION.headers.update(DEFAULT_HEADERS)
+if HAS_REQUESTS:
+    SESSION = requests.Session()
+    retries = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        backoff_factor=0.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        raise_on_status=False
+    )
+    adapter = HTTPAdapter(pool_connections=25, pool_maxsize=40, max_retries=retries)
+    SESSION.mount("https://", adapter)
+    SESSION.mount("http://", adapter)
+    SESSION.headers.update(DEFAULT_HEADERS)
 
-def prewarm_connection():
-    """程序启动时后台静默预热连接池，使首发检索从冷启动 15s 降至 0.06s"""
-    try:
-        SESSION.head("https://open.cnkgraph.com", timeout=10, verify=False)
-        safe_log("已完成搜韵知识图谱网络连接池异步预热")
-    except Exception:
-        pass
+    def prewarm_connection():
+        """程序启动时后台静默预热连接池，使首发检索从冷启动 15s 降至 0.06s"""
+        try:
+            SESSION.head("https://open.cnkgraph.com", timeout=10, verify=False)
+            safe_log("已完成搜韵知识图谱网络连接池异步预热")
+        except Exception:
+            pass
 
-threading.Thread(target=prewarm_connection, daemon=True, name="PrewarmThread").start()
+    threading.Thread(target=prewarm_connection, daemon=True, name="PrewarmThread").start()
+else:
+    safe_log("运行于纯标准库模式（Zero-Dependency 环境）")
 
 # ==============================================================================
 # 2. 无死锁、防节流生命周期与心跳机制 (Zero-Deadlock Lifecycle Architecture)
@@ -418,7 +425,7 @@ def clean_search_query(raw):
     return re.sub(r'\s+', ' ', s)
 
 def translate_error(e):
-    if isinstance(e, requests.HTTPError):
+    if HAS_REQUESTS and isinstance(e, requests.HTTPError):
         code = e.response.status_code if e.response is not None else 500
         if code == 429: return "访问频次过高，已被搜韵网流控限制，请稍候重试 (HTTP 429)"
         if code == 502: return "搜韵网网关无响应 (HTTP 502 Bad Gateway)"
@@ -426,7 +433,17 @@ def translate_error(e):
         if code == 504: return "搜韵网网关请求超时 (HTTP 504 Gateway Timeout)"
         if code >= 500: return f"搜韵网官方接口维护中 (HTTP {code})"
         return f"搜韵网接口返回异常 (HTTP {code})"
-    elif isinstance(e, (requests.Timeout, requests.ConnectionError, TimeoutError, socket.timeout)):
+    elif isinstance(e, HTTPError):
+        code = e.code
+        if code == 429: return "访问频次过高，已被搜韵网流控限制，请稍候重试 (HTTP 429)"
+        if code == 502: return "搜韵网网关无响应 (HTTP 502 Bad Gateway)"
+        if code == 503: return "搜韵网服务器暂时繁忙 (HTTP 503 Service Unavailable)"
+        if code == 504: return "搜韵网网关请求超时 (HTTP 504 Gateway Timeout)"
+        if code >= 500: return f"搜韵网官方接口维护中 (HTTP {code})"
+        return f"搜韵网接口返回异常 (HTTP {code})"
+    elif isinstance(e, (TimeoutError, URLError, socket.timeout)):
+        return "连接搜韵网接口超时，已自动多次重试未果，请检查互联网连接。"
+    elif HAS_REQUESTS and isinstance(e, (requests.Timeout, requests.ConnectionError)):
         return "连接搜韵网接口超时，已自动多次重试未果，请检查互联网连接。"
     elif isinstance(e, json.decoder.JSONDecodeError):
         return "搜韵网返回非标准数据，接口可能正处于更新或维护中。"
@@ -434,25 +451,44 @@ def translate_error(e):
 
 def fetch_json_safe(url, payload=None, timeout=(6, 25)):
     """
-    基于 requests.Session 连接池的高并发鲁棒网络请求器：
-    1. 连接池复用已建立的 TLS 通道，彻底消除频繁重复握手造成的延迟与 EOF 异常；
-    2. 内置 3 次梯度重试；
-    3. 连接超时 6 秒，读取超时 25 秒。
+    智能自适应网络请求器：
+    1. 若存在 requests 库，启用连接池复用已建立的 TLS 通道与启动预热，首发 0.06s；
+    2. 若处于无依赖环境，优雅降级至 Python 原生 urllib.request，确保零依赖平稳运行。
     """
-    try:
-        if payload is not None:
-            resp = SESSION.post(url, json=payload, timeout=timeout, verify=False)
-        else:
-            resp = SESSION.get(url, timeout=timeout, verify=False)
-        
-        if resp.status_code == 404:
-            return {}
-        if resp.status_code != 200:
-            raise requests.HTTPError(f"HTTP {resp.status_code}", response=resp)
-        return resp.json()
-    except Exception as e:
-        safe_log(f"网络请求异常 [{url}]: {repr(e)}")
-        raise e
+    if HAS_REQUESTS:
+        try:
+            if payload is not None:
+                resp = SESSION.post(url, json=payload, timeout=timeout, verify=False)
+            else:
+                resp = SESSION.get(url, timeout=timeout, verify=False)
+            
+            if resp.status_code == 404:
+                return {}
+            if resp.status_code != 200:
+                raise requests.HTTPError(f"HTTP {resp.status_code}", response=resp)
+            return resp.json()
+        except Exception as e:
+            safe_log(f"网络请求异常 [{url}]: {repr(e)}")
+            raise e
+    else:
+        to_sec = timeout[1] if isinstance(timeout, (tuple, list)) else timeout
+        try:
+            req_headers = dict(DEFAULT_HEADERS)
+            if payload is not None:
+                req_headers['Content-Type'] = 'application/json'
+                data_bytes = json.dumps(payload).encode('utf-8')
+                req = urllib.request.Request(url, data=data_bytes, headers=req_headers, method='POST')
+            else:
+                req = urllib.request.Request(url, headers=req_headers, method='GET')
+            with urllib.request.urlopen(req, timeout=to_sec, context=ctx) as r:
+                return json.loads(r.read().decode('utf-8'))
+        except HTTPError as he:
+            if he.code == 404:
+                return {}
+            raise he
+        except Exception as e:
+            safe_log(f"原生网络请求异常 [{url}]: {repr(e)}")
+            raise e
 
 def send_json_error(handler, status, msg):
     try:

@@ -20,6 +20,12 @@ releases/
 *.zip
 push_to_github.bat
 build.bat
+start.bat
+start.sh
+requirements.txt
+
+# Local development test suites
+tests/
 
 # Logs & temporary files
 *.log
